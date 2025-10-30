@@ -1003,3 +1003,20 @@ function nearestIndexOnTrack([la, lo], latlngs) {
   }
   return bestIdx;
 }
+
+
+
+(function(){
+  const root = document.documentElement;
+  const key = 'gpxplanner-theme';
+  const stored = localStorage.getItem(key);
+  if (stored === 'dark' || stored === 'light') {
+    root.setAttribute('data-theme', stored);
+  }
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    const current = root.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem(key, next);
+  });
+})();

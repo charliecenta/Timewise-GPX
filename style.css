@@ -1,16 +1,91 @@
-/* ---- Base ---- */
+/* =========================================================
+   🌗 THEME VARIABLES
+   Light defaults overridden by [data-theme="dark"]
+   ========================================================= */
+:root {
+  --bg: #f7f7fb;
+  --fg: #1a1a1a;
+
+  --card-bg: #ffffff;
+  --card-border: #e6e6ee;
+  --input-bg: #ffffff;
+  --input-border: #d9d9e6;
+
+  --accent: #2a7de1;
+  --accent-contrast: #ffffff;
+
+  --btn-bg: #ffffff;
+  --btn-border: #d9d9e6;
+  --btn-hover: #f2f3f9;
+
+  --map-bg: #ffffff;
+  --map-border: #e6e6ee;
+
+  --table-bg: #ffffff;
+  --table-border: #e6e6ee;
+  --table-head-bg: #f3f4f8;
+  --table-row-odd: #ffffff;
+  --table-row-even: #f9f9fc;
+  --table-row-hover: #eef3ff;
+
+  --muted: #667085;
+  --shadow: rgba(0, 0, 0, 0.08);
+
+  --tooltip-bg: #111;
+  --tooltip-fg: #fff;
+  --tooltip-border: rgba(0,0,0,0.2);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121418;
+  --fg: #e6e8ed;
+
+  --card-bg: #1b1e24;
+  --card-border: #2b2f38;
+  --input-bg: #242832;
+  --input-border: #3a3f4b;
+
+  --accent: #4e92ff;
+  --accent-contrast: #0b1220;
+
+  --btn-bg: #2d3440;
+  --btn-border: #3a3f4b;
+  --btn-hover: #3a4150;
+
+  --map-bg: #1b1e24;
+  --map-border: #2b2f38;
+
+  --table-bg: #1b1e24;
+  --table-border: #2b2f38;
+  --table-head-bg: #2a2f38;
+  --table-row-odd: #1a1d24;
+  --table-row-even: #1c1f26;
+  --table-row-hover: #2b303b;
+
+  --muted: #9aa3b2;
+  --shadow: rgba(0, 0, 0, 0.4);
+
+  --tooltip-bg: #000;
+  --tooltip-fg: #fff;
+  --tooltip-border: rgba(255,255,255,0.1);
+}
+
+/* =========================================================
+   BASE + LAYOUT
+   ========================================================= */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: #1a1a1a;
-  background: #f7f7fb;
+  color: var(--fg);
+  background: var(--bg);
+  transition: background 0.3s ease, color 0.3s ease;
 }
-/* ---- Hidden on load ---- */
+
 .is-hidden { display: none !important; }
 
-/* ---- Layout wrappers ---- */
 .wrap {
   max-width: 1100px;
   width: 92vw;
@@ -18,29 +93,46 @@ body {
   padding: 16px;
 }
 
-/* ---- Header ---- */
+/* =========================================================
+   HEADER
+   ========================================================= */
 header {
   display: flex;
   align-items: center;
-  gap: 12px;
   justify-content: space-between;
+  gap: 12px;
 }
 h1 { margin: 0; font-size: 20px; }
+#themeToggle {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--fg);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+#themeToggle:hover { background: var(--btn-hover); }
 
-/* ---- Cards ---- */
+/* =========================================================
+   CARDS
+   ========================================================= */
 .card {
-  background: #fff;
-  border: 1px solid #e6e6ee;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 16px;
+  box-shadow: 0 1px 3px var(--shadow);
 }
 .card h2 {
   margin: 0 0 10px;
   font-size: 16px;
 }
 
-/* ---- Controls (flex wrap) ---- */
+/* =========================================================
+   CONTROLS
+   ========================================================= */
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -59,77 +151,90 @@ h1 { margin: 0; font-size: 20px; }
   flex: 1 1 240px;
   min-width: 220px;
 }
+.field.break { flex-basis: 100%; }
+
 .field input[type="number"],
-.field input[type="file"] {
+.field input[type="file"],
+.controls select {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #d9d9e6;
+  border: 1px solid var(--input-border);
   border-radius: 8px;
-  background: #fff;
-}
-.field.break { flex-basis: 100%; } /* downhill factor starts a new row */
-/* --- Inline label + help icon --- */
-.label-row{
-  display:flex; align-items:center; gap:6px;
+  background: var(--input-bg);
+  color: var(--fg);
 }
 
-/* --- Help tooltip button --- */
-.help-tip{
-  --tip-bg: #111;
-  --tip-fg: #fff;
-  --tip-border: rgba(0,0,0,0.2);
-
-  appearance:none; border:0; padding:0;
-  display:inline-grid; place-items:center;
-  width:16px; height:16px; border-radius:50%;
-  background:#e8eaf2; color:#333; font-weight:700;
-  font-size:11px; line-height:1; cursor:help;
-  position:relative;
+/* =========================================================
+   TOOLTIP HELP ICON
+   ========================================================= */
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-@media (prefers-color-scheme: dark){
-  .help-tip{ background:#2e3344; color:#e7ecf5; }
+.help-tip {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--table-head-bg);
+  color: var(--fg);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+  cursor: help;
+  position: relative;
 }
-
-/* Bubble */
-.help-tip::after{
+.help-tip::after {
   content: attr(data-tip);
-  position:absolute;
-  z-index:10;
-  left:0; top:130%;
-  min-width:180px; max-width:280px;
-  padding:8px 10px; border-radius:8px;
-  background: var(--tip-bg);
-  color: var(--tip-fg);
-  border: 1px solid var(--tip-border);
+  position: absolute;
+  z-index: 10;
+  left: 0; top: 130%;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  border: 1px solid var(--tooltip-border);
   box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-  font-size:12px; line-height:1.25;
+  font-size: 12px;
+  line-height: 1.25;
   white-space: normal;
-  opacity:0; transform: translateY(4px);
-  pointer-events:none;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
   transition: opacity .12s ease, transform .12s ease;
 }
-
-/* Caret */
-.help-tip::before{
-  content:"";
-  position:absolute; left:6px; top:120%;
-  width:8px; height:8px; transform: rotate(45deg);
-  background: var(--tip-bg);
-  border-left:1px solid var(--tip-border);
-  border-top:1px solid var(--tip-border);
-  opacity:0; transition: opacity .12s ease;
+.help-tip::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 120%;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: var(--tooltip-bg);
+  border-left: 1px solid var(--tooltip-border);
+  border-top: 1px solid var(--tooltip-border);
+  opacity: 0;
+  transition: opacity .12s ease;
 }
-
-/* Show on hover/focus */
 .help-tip:hover::after,
 .help-tip:focus-visible::after,
 .help-tip:hover::before,
-.help-tip:focus-visible::before{
-  opacity:1; transform: translateY(0);
+.help-tip:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-
-/* ---- Actions ---- */
+/* =========================================================
+   ACTION BUTTONS
+   ========================================================= */
 .actions {
   display: flex;
   align-items: center;
@@ -140,20 +245,30 @@ h1 { margin: 0; font-size: 20px; }
 
 button {
   appearance: none;
-  border: 1px solid #d9d9e6;
-  background: #fff;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--fg);
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
+  transition: background .2s ease, border-color .2s ease;
+}
+button:hover {
+  background: var(--btn-hover);
 }
 button.primary {
-  background: #2a7de1;
-  border-color: #2a7de1;
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
 }
-button:disabled { opacity: 0.55; cursor: not-allowed; }
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
-/* ---- Grid (map + summary) ---- */
+/* =========================================================
+   MAP + GRID LAYOUT
+   ========================================================= */
 .grid {
   display: grid;
   gap: 16px;
@@ -162,90 +277,85 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 @media (max-width: 960px) {
   .grid { grid-template-columns: 1fr; }
 }
-
-/* ---- Map ---- */
 .map {
   height: 420px;
   width: 100%;
-  border: 1px solid #e6e6ee;
+  border: 1px solid var(--map-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--map-bg);
 }
 
-/* ---- Table area ---- */
-.table-wrap { overflow-x: auto; }   /* never overflow the viewport horizontally */
+/* =========================================================
+   TABLES
+   ========================================================= */
+.table-wrap { overflow-x: auto; }
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border: 1px solid #e6e6ee;
+  background: var(--table-bg);
+  border: 1px solid var(--table-border);
   border-radius: 8px;
 }
 thead th {
-  background: #f3f4f8;
-  border-bottom: 1px solid #e6e6ee;
+  background: var(--table-head-bg);
+  border-bottom: 1px solid var(--table-border);
   text-align: center;
+  color: var(--fg);
 }
 th, td {
   padding: 8px 10px;
-  border-right: 1px solid #efeff6;
+  border-right: 1px solid var(--table-border);
   white-space: nowrap;
   text-align: right;
+  color: var(--fg);
 }
 th:first-child, td:first-child { text-align: center; }
 th:nth-child(2), td:nth-child(2) { text-align: left; }
 th:last-child, td:last-child { border-right: none; }
 
-/* Editable cells (your JS attaches contenteditable) */
+tbody tr:nth-child(odd) { background: var(--table-row-odd); }
+tbody tr:nth-child(even) { background: var(--table-row-even); }
+tbody tr:hover { background: var(--table-row-hover); }
+
+/* Editable cells */
 .leg-cell .leg-name,
 .editable {
-  border-bottom: 1px dashed #bbb;
+  border-bottom: 1px dashed var(--table-border);
   cursor: text;
 }
 .leg-cell .leg-name:focus,
 .editable:focus {
-  outline: 2px solid #2a7de1;
+  outline: 2px solid var(--accent);
   border-bottom-color: transparent;
 }
+
 /* Smaller, cleaner table text */
-#roadbooks table {
-  font-size: 13px;
-}
+#roadbooks table { font-size: 13px; }
 #roadbooks th,
-#roadbooks td {
-  padding: 6px 8px;
-}
+#roadbooks td { padding: 6px 8px; }
+
 /* Limit wide columns and allow wrapping */
 #roadbooks th,
 #roadbooks td {
-  max-width: 200px;         /* don't let any cell exceed this width */
-  white-space: normal;      /* allow wrapping */
-  word-break: break-word;   /* break long strings (e.g., names) */
-  overflow-wrap: anywhere;  /* support modern browsers */
+  max-width: 200px;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
-/* Advanced fields start hidden unless the card has .show-adv */
+/* Advanced fields start hidden unless .show-adv */
 #settingsCard .advanced { display: none; }
 #settingsCard.show-adv .advanced { display: grid; }
 
-/* Basic select styling to match inputs */
-.controls select {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #d9d9e6;
-  border-radius: 8px;
-  background: #fff;
-}
-
-
-/* ---- Print: show only itinerary (Summary + Roadbooks) ---- */
+/* =========================================================
+   PRINT
+   ========================================================= */
 @media print {
   body {
     background: #fff;
     color: #000;
   }
 
-  /* Hide header, settings card, map card, and action rows */
   header,
   #settingsCard,
   #mapCard,
@@ -255,7 +365,6 @@ th:last-child, td:last-child { border-right: none; }
     display: none !important;
   }
 
-  /* Expand content fully for print */
   .wrap {
     max-width: none;
     width: 100%;
@@ -263,7 +372,6 @@ th:last-child, td:last-child { border-right: none; }
     padding: 0;
   }
 
-  /* Remove shadows and borders on print cards */
   .card {
     box-shadow: none !important;
     border: none !important;
@@ -272,11 +380,11 @@ th:last-child, td:last-child { border-right: none; }
     page-break-inside: avoid;
   }
 
-  /* Compact, clean tables for paper */
   #roadbooks table {
     font-size: 11px;
     border: none;
     width: 100%;
+    background: #fff;
   }
   #roadbooks th,
   #roadbooks td {
@@ -286,5 +394,6 @@ th:last-child, td:last-child { border-right: none; }
     white-space: normal;
     word-break: break-word;
     overflow-wrap: anywhere;
+    color: #000;
   }
 }
