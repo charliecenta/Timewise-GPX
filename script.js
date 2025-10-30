@@ -1022,5 +1022,11 @@ function nearestIndexOnTrack([la, lo], latlngs) {
     const next = current === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     localStorage.setItem(key, next);
+
+    // ✅ Keep topo map light even in dark mode
+    if (tileLayer && map) {
+      tileLayer.setUrl('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
+    }
   });
 })();
+
