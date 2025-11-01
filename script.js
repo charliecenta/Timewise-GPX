@@ -29,6 +29,10 @@ const ACTIVITY_PRESETS = {
   hike:   { spacing: 3, smooth: 15, speedFlat:  4, speedVert: 300, dhf: 0.6667 }, // Hiking / trail
 };
 
+// Allowed range for condition percentage
+const MIN_COND_PCT = -90;
+const MAX_COND_PCT = 300;
+
 function applyActivityPreset(kind) {
   const p = ACTIVITY_PRESETS[kind];
   if (!p) return;
@@ -126,7 +130,6 @@ if (activitySel) {
   applyActivityPreset(activitySel.value || 'hike');
 }
 
-
 // ---------- Main flow ----------
 calcBtn.addEventListener("click", async () => {
   const fileInput = document.getElementById("gpxFile");
@@ -190,7 +193,7 @@ calcBtn.addEventListener("click", async () => {
     // Mark where this segment starts in the global point list
     trackBreakIdx.push(trackLatLngs.length);
 
-    // ✅ Keep cumulative arrays aligned with points at segment boundaries.
+    // Keep cumulative arrays aligned with points at segment boundaries.
     // If we already have points, push a carry-forward so cum* arrays gain +1 here.
     if (trackLatLngs.length > 0) {
       cumDistKm.push(cumDistKm[cumDistKm.length - 1]);
@@ -576,21 +579,26 @@ function bindTimeEditors() {
   });
 
   // Conditions (percent)
-  roadbooksEl.querySelectorAll('.wb-cond').forEach(el => {
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
-    el.addEventListener('blur', () => {
-      const key = el.dataset.legkey;
-      const val = sanitizeInt(el.textContent, 0);
-      legCondPct.set(key, val);
-      el.textContent = percentToText(val);
+  roadbooksEl.querySelectorAll('.wb-cond').forEach(node => {
+    const key = node.getAttribute('data-legkey');
+    const save = () => {
+      const pct = parseCondPercent(node.textContent || "");
+      legCondPct.set(key, pct);
+      // normalise display
+      node.textContent = percentToText(pct);
+      // ✅ Rebuild table so row totals / Σt / Rem update
       renderRoadbooksTable();
-    });
-    el.addEventListener('input', () => {
-      el.textContent = el.textContent.replace(/[^\d]/g, '');
-      const s = window.getSelection(); const r = document.createRange();
-      r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r);
+    };
+    node.addEventListener('blur', save);
+    node.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // avoid newline
+        save();
+        node.blur();
+      }
     });
   });
+
 }
 
 function bindCriticalEditors() {
@@ -976,7 +984,21 @@ function clampToOdd(val, minOdd, maxOdd) { val = clamp(val, minOdd, maxOdd); if 
 
 function sanitizeInt(str, def = 0) { const m = String(str ?? "").match(/\d+/); const n = m ? parseInt(m[0], 10) : def; return Number.isFinite(n) && n >= 0 ? n : def; }
 function minutesToText(min) { return `${min} min`; }
-function percentToText(pct) { return `${pct} %`; }
+
+function percentToText(p) {
+  const n = Number.isFinite(p) ? Math.round(p) : 0;
+  return `${n} %`;
+}
+
+function parseCondPercent(str) {
+  if (!str) return 0;
+  // Accept forms like "-10", "-10%", " -10 % ", "+15", "15%"
+  const m = String(str).trim().match(/^([+-]?\d{1,4})\s*%?$/);
+  const raw = m ? parseInt(m[1], 10) : 0;
+  // Clamp to sensible bounds so we never get pathological totals
+  return Math.max(MIN_COND_PCT, Math.min(MAX_COND_PCT, raw));
+}
+
 
 function downloadFile(filename, mime, text) {
   const blob = new Blob([text], { type: mime });
@@ -1015,20 +1037,61 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Sum times per leg for summary: includes Conditions, optionally Stops
+function computeTimeRollups() {
+  if (!trackLatLngs.length || roadbookIdx.length < 2 || cumTimeH.length === 0) {
+    const base = cumTimeH[cumTimeH.length - 1] ?? 0;
+    return { baseH: base, activityWithCondH: base, stopsH: 0, totalH: base };
+  }
+
+  const lastIdx = trackLatLngs.length - 1;
+  let baseSumH = 0;
+  let activityWithCondH = 0;
+  let stopsH = 0;
+
+  for (let k = 1; k < roadbookIdx.length; k++) {
+    const a = Math.max(0, Math.min(roadbookIdx[k - 1], lastIdx));
+    const b = Math.max(0, Math.min(roadbookIdx[k], lastIdx));
+    const key = `${a}|${b}`;
+
+    const tA = cumTimeH[a] ?? 0;
+    const tB = cumTimeH[b] ?? tA;
+    const base = tB - tA;
+
+    const condPct  = legCondPct.get(key)  ?? 0;
+    const stopsMin = legStopsMin.get(key) ?? 0;
+
+    baseSumH += base;
+    activityWithCondH += base * (1 + condPct / 100);
+    stopsH += (stopsMin / 60);
+  }
+
+  return {
+    baseH: baseSumH,
+    activityWithCondH,
+    stopsH,
+    totalH: activityWithCondH + stopsH
+  };
+}
+
 function updateSummaryCard() {
   if (!trackLatLngs.length || cumDistKm.length === 0) {
     outputEl.innerHTML = "";
     return;
   }
 
-  // Derive totals from the cumulative arrays
+  // Totals from cumulative arrays
   const totalDistKm    = cumDistKm[cumDistKm.length - 1]    ?? 0;
   const totalAscentM   = cumAscentM[cumAscentM.length - 1]  ?? 0;
   const totalDescentM  = cumDescentM[cumDescentM.length - 1]?? 0;
-  const activityTimeH  = cumTimeH[cumTimeH.length - 1]      ?? 0; // base time from the model
-  const totalTimeH     = lastTotalAdjustedH || activityTimeH;     // base + Stops/Cond
 
-  // For the little config line
+  // Roll up times:
+  // - baseH = pure model (no cond, no stops)
+  // - activityWithCondH = includes Conditions, excludes Stops  ✅
+  // - totalH = includes both Conditions + Stops
+  const { activityWithCondH, totalH } = computeTimeRollups();
+
+  // Config line
   const spacingM      = parseFloat(document.getElementById("spacingM")?.value)      || 5;
   const smoothWinM    = parseFloat(document.getElementById("smoothWinM")?.value)    || 35;
   const elevDeadbandM = parseFloat(document.getElementById("elevDeadbandM")?.value) || 2;
@@ -1038,12 +1101,13 @@ function updateSummaryCard() {
       <li><strong>Distance:</strong> ${fmtKm(totalDistKm)}</li>
       <li><strong>Ascent:</strong> ${Math.round(totalAscentM)} m</li>
       <li><strong>Descent:</strong> ${Math.round(totalDescentM)} m</li>
-      <li><strong>Estimated Activity Time:</strong> ${fmtHrs(activityTimeH)}</li>
-      <li><strong>Estimated Total Time:</strong> ${fmtHrs(totalTimeH)}</li>
+      <li><strong>Estimated Activity Time:</strong> ${fmtHrs(activityWithCondH)}</li>
+      <li><strong>Estimated Total Time:</strong> ${fmtHrs(totalH)}</li>
     </ul>
     <p class="subtle">Resample: ${spacingM} m • Smooth window: ${smoothWinM} m • Deadband: ${elevDeadbandM} m</p>
   `;
 }
+
 
 
 // ---------- Nearest point ----------

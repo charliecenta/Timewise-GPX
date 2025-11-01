@@ -311,7 +311,6 @@ th, td {
 }
 th:first-child, td:first-child { text-align: center; }
 th:nth-child(2), td:nth-child(2) { text-align: left; }
-th:last-child, td:last-child { border-right: none; }
 
 tbody tr:nth-child(odd) { background: var(--table-row-odd); }
 tbody tr:nth-child(even) { background: var(--table-row-even); }
