@@ -17,6 +17,7 @@ const loadInput = document.getElementById("loadPlanInput");
 const exportCsv = document.getElementById("exportCsvBtn");
 const printBtn  = document.getElementById("printBtn");
 
+
 // === Activity & Advanced Configuration (single source of truth) ===
 const activitySel = document.getElementById("activityType");
 const showAdvChk  = document.getElementById("showAdvanced");
@@ -64,6 +65,9 @@ let legLabels = new Map();      // "a|b" -> custom leg name
 let legStopsMin = new Map();   // "a|b" -> minutes
 let legCondPct  = new Map();   // "a|b" -> percent
 let legCritical = new Map();   // "a|b" -> true (Yes) / false (No)
+
+// Free-form comments per leg (key = "a|b")
+const legObservations = new Map();
 
 // Holds the sum of leg times including Stops + Conditions
 let lastTotalAdjustedH = 0;
@@ -350,19 +354,30 @@ function addRoadbookIndex(i, opts = {}) {
   m.__locked = locked;
   m.bindTooltip(initial, { permanent: true, direction: 'top', offset: [0, -12], opacity: 0.85 });
 
-  m.on('click', () => {
-    if (m.__locked) return;
-    const pos = roadbookIdx.indexOf(m.__idx);
-    if (pos >= 0) roadbookIdx.splice(pos, 1);
-    const mi = markers.findIndex(mm => mm.__idx === m.__idx);
-    if (mi >= 0) { markers[mi].remove(); markers.splice(mi, 1); }
-    roadbookLabels.delete(m.__idx);
-    // remove any custom leg labels & overrides involving this index
-    [...legLabels.keys()].forEach(k => { const [a,b]=k.split('|').map(Number); if (a===m.__idx || b===m.__idx) legLabels.delete(k); });
-    legStopsMin.delete(`${m.__idx}|${m.__idx+1}`);
-    legCondPct.delete(`${m.__idx}|${m.__idx+1}`);
-    renderRoadbooksTable();
+m.on('click', () => {
+  if (m.__locked) return;
+
+  // Remove this index from the ordered list
+  const pos = roadbookIdx.indexOf(m.__idx);
+  if (pos >= 0) roadbookIdx.splice(pos, 1);
+
+  // Remove marker + label
+  const mi = markers.findIndex(mm => mm.__idx === m.__idx);
+  if (mi >= 0) { markers[mi].remove(); markers.splice(mi, 1); }
+  roadbookLabels.delete(m.__idx);
+
+  // Purge any leg-based data involving this waypoint (a|b keys)
+  const mapsToClean = [legLabels, legStopsMin, legCondPct, legCritical, legObservations];
+  mapsToClean.forEach(mapObj => {
+    for (const k of [...mapObj.keys()]) {
+      const [a, b] = String(k).split('|').map(Number);
+      if (a === m.__idx || b === m.__idx) mapObj.delete(k);
+    }
   });
+
+  renderRoadbooksTable();
+});
+
 
   markers.push(m);
   if (!noRender) renderRoadbooksTable();
@@ -398,27 +413,24 @@ function setLegLabelByKey(key, label) {
 function renderRoadbooksTable() {
   if (!trackLatLngs.length || roadbookIdx.length < 2) {
     roadbooksEl.innerHTML = "";
-    // keep summary consistent
     updateSummaryCard();
     return;
   }
 
   const lastIdx = trackLatLngs.length - 1;
-
   const legEntries = [];
+
   for (let k = 1; k < roadbookIdx.length; k++) {
-    // Clamp leg endpoints into valid range (belt & braces)
     const aRaw = roadbookIdx[k - 1];
     const bRaw = roadbookIdx[k];
     const a = Math.max(0, Math.min(aRaw, lastIdx));
     const b = Math.max(0, Math.min(bRaw, lastIdx));
     const key = getLegKey(a, b);
 
-    // Safely read cumulative arrays
-    const dA = cumDistKm[a]   ?? 0, dB = cumDistKm[b]   ?? dA;
-    const uA = cumAscentM[a]  ?? 0, uB = cumAscentM[b]  ?? uA;
+    const dA = cumDistKm[a] ?? 0, dB = cumDistKm[b] ?? dA;
+    const uA = cumAscentM[a] ?? 0, uB = cumAscentM[b] ?? uA;
     const vA = cumDescentM[a] ?? 0, vB = cumDescentM[b] ?? vA;
-    const tA = cumTimeH[a]    ?? 0, tB = cumTimeH[b]    ?? tA;
+    const tA = cumTimeH[a] ?? 0, tB = cumTimeH[b] ?? tA;
 
     const distKm = dB - dA;
     const ascM   = uB - uA;
@@ -432,13 +444,12 @@ function renderRoadbooksTable() {
     legEntries.push({ idx: k, a, b, key, distKm, ascM, desM, baseH: timeH, stopsMin, condPct, totalH });
   }
 
-  // Save adjusted total for the Summary card
   const totalAdjustedH = legEntries.reduce((s, L) => s + L.totalH, 0);
   lastTotalAdjustedH = totalAdjustedH;
 
   let html = `
     <p>Click the map to add waypoints; click a waypoint to remove it (locked ones won’t remove).
-      Double-click <em>Name</em>, edit <em>Stops</em>/<em>Cond</em>, and set <em>Critical</em> per leg.</p>
+    Double-click <em>Name</em>, edit <em>Stops</em>/<em>Cond</em>, set <em>Critical</em>, and add <em>Observations</em> per leg.</p>
     <table>
       <thead>
         <tr>
@@ -448,6 +459,7 @@ function renderRoadbooksTable() {
           <th colspan="3">Leg</th>
           <th colspan="3">Accumulated</th>
           <th colspan="6">Time</th>
+          <th rowspan="2">Observations</th>
         </tr>
         <tr>
           <th>d</th><th>↑</th><th>↓</th>
@@ -470,6 +482,7 @@ function renderRoadbooksTable() {
     const displayLabel = legLabels.get(L.key) || autoLabel;
     const remainingH   = totalAdjustedH - cumTimeAdjH;
     const isCritical   = legCritical.get(L.key) ?? false;
+    const obsText      = legObservations.get(L.key) ?? "";
 
     html += `
       <tr>
@@ -506,6 +519,11 @@ function renderRoadbooksTable() {
         <td>${fmtHrs(L.totalH)}</td>
         <td>${fmtHrs(cumTimeAdjH)}</td>
         <td>${fmtHrs(remainingH)}</td>
+
+        <td class="obs-cell">
+          <span class="editable wb-obs" contenteditable="true" data-legkey="${L.key}" spellcheck="true"
+                title="Add notes or comments">${escapeHtml(obsText)}</span>
+        </td>
       </tr>
     `;
   }
@@ -516,11 +534,9 @@ function renderRoadbooksTable() {
   bindLegEditors();
   bindTimeEditors();
   bindCriticalEditors();
-
-  // ✅ Refresh Summary after any table rebuild (so totals stay in sync)
+  bindObservationEditors();
   updateSummaryCard();
 }
-
 
 
 // ---------- Editors ----------
@@ -588,12 +604,26 @@ function bindCriticalEditors() {
   });
 }
 
+function bindObservationEditors() {
+  const nodes = roadbooksEl.querySelectorAll('.wb-obs');
+  nodes.forEach(node => {
+    const key = node.getAttribute('data-legkey');
+    // Save on input (live) and on blur (final)
+    const save = () => {
+      const val = (node.textContent || "").trim();
+      if (val) legObservations.set(key, val);
+      else legObservations.delete(key);
+    };
+    node.addEventListener('input', save);
+    node.addEventListener('blur', save);
+  });
+}
+
 
 // ---------- Save / Load / Export CSV ----------
 function serializePlan() {
   const legs = [];
   let cumDistKmShown = 0, cumAscMShown = 0, cumDesMShown = 0, cumTimeAdjH = 0;
-
   const lastIdx = trackLatLngs.length - 1;
 
   for (let k = 1; k < roadbookIdx.length; k++) {
@@ -616,6 +646,7 @@ function serializePlan() {
     const stopsMin = legStopsMin.get(key) ?? 0;
     const condPct  = legCondPct.get(key) ?? 0;
     const name     = legLabels.get(key) || getDefaultLegLabel(a, b);
+    const obs      = legObservations.get(key) ?? "";
 
     const totalH   = baseH * (1 + condPct / 100) + (stopsMin / 60);
 
@@ -628,7 +659,8 @@ function serializePlan() {
       idx: k, a, b, key, name,
       distKm, ascM, desM, baseH, stopsMin, condPct, totalH,
       cumDistKm: cumDistKmShown, cumAscM: cumAscMShown, cumDesM: cumDesMShown, cumTimeAdjH,
-      critical: !!(legCritical.get(key))
+      critical: !!(legCritical.get(key)),
+      observations: obs
     });
   }
 
@@ -638,11 +670,12 @@ function serializePlan() {
     downhillFactor: parseFloat(document.getElementById("downhillFactor")?.value) || 0.6667,
     spacingM: parseFloat(document.getElementById("spacingM")?.value) || 5,
     smoothWinM: parseFloat(document.getElementById("smoothWinM")?.value) || 35,
-    elevDeadbandM: parseFloat(document.getElementById("elevDeadbandM")?.value) || 2
+    elevDeadbandM: parseFloat(document.getElementById("elevDeadbandM")?.value) || 2,
+    activity: document.getElementById("activityType")?.value || "hike"
   };
 
   return {
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     signature: trackSignature(),
     settings,
@@ -652,9 +685,11 @@ function serializePlan() {
     legStopsMin: Object.fromEntries(legStopsMin),
     legCondPct: Object.fromEntries(legCondPct),
     legCritical: Object.fromEntries(legCritical),
+    legObservations: Object.fromEntries(legObservations),
     legs
   };
 }
+
 
 
 
@@ -664,21 +699,35 @@ function restorePlanFromJSON(plan) {
     alert("Heads-up: this saved plan may belong to a different GPX or settings.");
   }
 
-  roadbookIdx = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : roadbookIdx;
-  roadbookLabels = new Map(Object.entries(plan.roadbookLabels || {}).map(([k,v]) => [Number(k), v]));
-  legLabels      = new Map(Object.entries(plan.legLabels || {}));
-  legStopsMin    = new Map(Object.entries(plan.legStopsMin || {}));
-  legCondPct     = new Map(Object.entries(plan.legCondPct || {}));
+  // Rebuild core arrays/maps
+  roadbookIdx     = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : [];
+  roadbookLabels  = new Map(Object.entries(plan.roadbookLabels || {}).map(([k,v]) => [Number(k), v]));
+  legLabels       = new Map(Object.entries(plan.legLabels || {}));
+  legStopsMin     = new Map(Object.entries(plan.legStopsMin || {}));
+  legCondPct      = new Map(Object.entries(plan.legCondPct || {}));
+  legCritical     = new Map(Object.entries(plan.legCritical || {}).map(([k,v]) => [k, !!v]));
+  legObservations = new Map(Object.entries(plan.legObservations || {}).map(([k,v]) => [k, String(v || "")])); // ✅ restore Observations
 
-  legCritical = new Map(Object.entries(plan.legCritical || {}).map(([k,v]) => [k, !!v]));
+  // (Optional) restore settings to the UI
+  const s = plan.settings || {};
+  if (document.getElementById("activityType") && s.activity) document.getElementById("activityType").value = s.activity;
+  if (document.getElementById("speedFlat"))      document.getElementById("speedFlat").value      = s.speedFlatKmh   ?? 4;
+  if (document.getElementById("speedVert"))      document.getElementById("speedVert").value      = s.speedVertMh    ?? 300;
+  if (document.getElementById("downhillFactor")) document.getElementById("downhillFactor").value = s.downhillFactor ?? 0.6667;
+  if (document.getElementById("spacingM"))       document.getElementById("spacingM").value       = s.spacingM       ?? 5;
+  if (document.getElementById("smoothWinM"))     document.getElementById("smoothWinM").value     = s.smoothWinM     ?? 35;
+  if (document.getElementById("elevDeadbandM"))  document.getElementById("elevDeadbandM").value  = s.elevDeadbandM  ?? 2;
 
+  // Rebuild markers and table
   clearMarkers();
   for (const i of roadbookIdx) {
     const locked = (i === 0 || i === trackLatLngs.length - 1);
     addRoadbookIndex(i, { noRender: true, label: roadbookLabels.get(i), locked });
   }
   renderRoadbooksTable();
+  updateSummaryCard();
 }
+
 
 if (saveBtn) saveBtn.addEventListener('click', () => {
   if (!trackLatLngs.length) return;

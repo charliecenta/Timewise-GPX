@@ -317,6 +317,18 @@ tbody tr:nth-child(odd) { background: var(--table-row-odd); }
 tbody tr:nth-child(even) { background: var(--table-row-even); }
 tbody tr:hover { background: var(--table-row-hover); }
 
+/* --- Observations column wrapping --- */
+#roadbooks td.obs-cell,
+#roadbooks td.obs-cell .wb-obs {
+  max-width: 200px;        
+  white-space: normal;    
+  word-break: break-word;  
+  overflow-wrap: anywhere;  
+  vertical-align: top;     
+  text-align: left;       
+  line-height: 1.3;
+}
+
 /* Editable cells */
 .leg-cell .leg-name,
 .editable {
@@ -330,7 +342,7 @@ tbody tr:hover { background: var(--table-row-hover); }
 }
 
 /* Smaller, cleaner table text */
-#roadbooks table { font-size: 13px; }
+#roadbooks table { font-size: 11px; }
 #roadbooks th,
 #roadbooks td { padding: 6px 8px; }
 
@@ -395,5 +407,14 @@ tbody tr:hover { background: var(--table-row-hover); }
     word-break: break-word;
     overflow-wrap: anywhere;
     color: #000;
+  }
+  #roadbooks td.obs-cell,
+  #roadbooks td.obs-cell .wb-obs {
+    max-width: 200px;
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.2;
   }
 }
