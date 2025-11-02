@@ -831,10 +831,10 @@ function serializePlan() {
 
 
 async function restorePlanFromJSON(plan) {
-  // If there is no current track, try to rebuild it from the saved GPX using saved settings.
+  // If no current track, rebuild from embedded GPX first
   if (!trackLatLngs.length) {
     if (!plan.gpxText) {
-      alert("This saved plan has no embedded GPX. Please process a GPX file first, then load the plan.");
+      alert("This saved plan has no embedded GPX. Please process a GPX first, then load the plan.");
       return;
     }
 
@@ -849,15 +849,23 @@ async function restorePlanFromJSON(plan) {
     setVal("smoothWinM",     s.smoothWinM);
     setVal("elevDeadbandM",  s.elevDeadbandM);
 
-    // Build the track (do NOT import roadbooks from GPX; the plan restores them)
-    await processGpxText(plan.gpxText, /* importRoadbooks */ false);
+    try {
+      // Build the track (do NOT import GPX waypoints; plan restores them)
+      await processGpxText(plan.gpxText, /* importRoadbooks */ false);
+    } catch (e) {
+      console.error('Processing saved GPX failed:', e);
+      alert("Failed to rebuild the track from the saved plan’s GPX.");
+      return;
+    }
   }
 
-  // Optional signature warning
-  const sig = trackSignature();
-  if (plan.signature && sig && sig.n !== plan.signature.n) {
-    console.warn("Saved plan may belong to a different GPX/settings.");
-  }
+  // Optional sanity check
+  try {
+    const sig = trackSignature();
+    if (plan.signature && sig && sig.n !== plan.signature.n) {
+      console.warn("Saved plan may belong to a different GPX/settings. Legs may not align perfectly.");
+    }
+  } catch {}
 
   // Restore roadbook data
   roadbookIdx     = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : [];
@@ -868,7 +876,7 @@ async function restorePlanFromJSON(plan) {
   legCritical     = new Map(Object.entries(plan.legCritical    || {}).map(([k,v]) => [k, !!v]));
   legObservations = new Map(Object.entries(plan.legObservations|| {}));
 
-  // Rebuild map markers from the saved indices/labels
+  // Rebuild markers from the saved indices/labels
   clearMarkers();
   for (const i of roadbookIdx) {
     const locked = (i === 0 || i === trackLatLngs.length - 1);
@@ -887,6 +895,7 @@ async function restorePlanFromJSON(plan) {
 
 
 
+
 // Save current plan
 if (saveBtn) {
   saveBtn.addEventListener('click', () => {
@@ -897,7 +906,7 @@ if (saveBtn) {
   });
 }
 
-// Load saved plan (robust: handles BOM, wrong file type, legacy plans)
+// Load saved plan (robust + clear diagnostics)
 if (loadBtn && loadInput) {
   loadBtn.addEventListener('click', () => loadInput.click());
   loadInput.addEventListener('change', async (e) => {
@@ -908,14 +917,14 @@ if (loadBtn && loadInput) {
       const text = await file.text();
       const trimmed = String(text).trim();
 
-      // If user picked a GPX instead of a plan JSON, just process the GPX.
+      // User picked a GPX instead of plan JSON? Load as GPX.
       if (/^</.test(trimmed)) {
         await processGpxText(trimmed, /* importRoadbooks */ true);
-        alert("Loaded GPX file. (Tip: use the Save button to export a resumable plan JSON next time.)");
+        alert("Loaded a GPX file. (Tip: use Save to export a resumable plan JSON.)");
         return;
       }
 
-      // Try parsing as JSON (strip BOM first)
+      // Parse plan JSON (strip BOM if present)
       let plan;
       try {
         plan = safeParseJSON(text);
@@ -925,22 +934,22 @@ if (loadBtn && loadInput) {
         return;
       }
 
-      // Handle very old saves that had no gpxText
+      // Must have embedded GPX for full restore
       if (!plan.gpxText && !trackLatLngs.length) {
-        alert("This saved plan doesn’t contain the embedded GPX. Please process the original GPX once, then load the plan again.");
+        alert("This saved plan doesn’t contain embedded GPX. Process the original GPX once, then load the plan again.");
         return;
       }
 
       await restorePlanFromJSON(plan);
     } catch (err) {
-      console.error(err);
-      alert("Could not load the file.");
+      console.error('Load failed:', err);
+      alert(`Could not load the file.\n\n${(err && err.message) ? err.message : ''}`);
     } finally {
-      // reset the input so the same file can be chosen again
       loadInput.value = "";
     }
   });
 }
+
 
 
 
@@ -1177,12 +1186,6 @@ function safeParseJSON(text) {
   return JSON.parse(clean);
 }
 
-async function processGpxFromString(gpxText) {
-  if (!gpxText) throw new Error("Empty GPX text");
-  lastGpxText = gpxText;
-  const xml = new DOMParser().parseFromString(gpxText, "application/xml");
-  await processParsedGpx(xml);
-}
 
 function percentToText(p) {
   const n = Number.isFinite(p) ? Math.round(p) : 0;
