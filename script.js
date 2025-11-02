@@ -80,13 +80,14 @@ let legCondPct  = new Map();   // "a|b" -> percent
 let legCritical = new Map();   // "a|b" -> true (Yes) / false (No)
 
 // Free-form comments per leg (key = "a|b")
-const legObservations = new Map();
+let legObservations = new Map();
 
 // Holds the sum of leg times including Stops + Conditions
 let lastTotalAdjustedH = 0;
 
 // Keep the raw GPX text so saves can be reloaded without re-uploading a file
 let lastGpxText = "";
+let lastGpxName = ""; 
 
 // Helper to toggle visibility of main sections
 function showMainSections(show) {
@@ -405,16 +406,22 @@ async function processGpxText(gpxText, importRoadbooks = true) {
 
 
 // ---------- Main flow ----------
+// ---------- Main flow ----------
 calcBtn.addEventListener("click", async () => {
   const fileInput = document.getElementById("gpxFile");
   if (!fileInput?.files?.length) {
     alert("Please upload a GPX file.");
     return;
   }
-  const gpxText = await readFileAsText(fileInput.files[0]);
+  const file = fileInput.files[0];
+  // ✅ store the base filename (no extension) for saving later
+  lastGpxName = file.name.replace(/\.[^/.]+$/, "");
+
+  const gpxText = await readFileAsText(file);
   const importRoadbooks = document.getElementById("importRoadbooks")?.checked ?? true;
   await processGpxText(String(gpxText || ""), importRoadbooks);
 });
+
 
 
 
@@ -714,7 +721,7 @@ function bindTimeEditors() {
       legCondPct.set(key, pct);
       // normalise display
       node.textContent = percentToText(pct);
-      // ✅ Rebuild table so row totals / Σt / Rem update
+      // Rebuild table so row totals / Σt / Rem update
       renderRoadbooksTable();
     };
     node.addEventListener('blur', save);
@@ -815,6 +822,7 @@ function serializePlan() {
     gpxText: lastGpxText || null,               // <-- embed GPX here
     signature: trackSignature(),
     settings,
+    meta: { gpxName: lastGpxName || null },
     roadbookIdx,
     roadbookLabels: Object.fromEntries(roadbookLabels),
     legLabels: Object.fromEntries(legLabels),
@@ -867,25 +875,34 @@ async function restorePlanFromJSON(plan) {
     }
   } catch {}
 
-  // Restore roadbook data
-  roadbookIdx     = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : [];
-  roadbookLabels  = new Map(Object.entries(plan.roadbookLabels || {}).map(([k,v]) => [Number(k), v]));
-  legLabels       = new Map(Object.entries(plan.legLabels      || {}));
-  legStopsMin     = new Map(Object.entries(plan.legStopsMin    || {}));
-  legCondPct      = new Map(Object.entries(plan.legCondPct     || {}));
-  legCritical     = new Map(Object.entries(plan.legCritical    || {}).map(([k,v]) => [k, !!v]));
-  legObservations = new Map(Object.entries(plan.legObservations|| {}));
+  if (plan.meta && plan.meta.gpxName) {
+  lastGpxName = plan.meta.gpxName;
+}
 
-  // Rebuild markers from the saved indices/labels
-  clearMarkers();
-  for (const i of roadbookIdx) {
-    const locked = (i === 0 || i === trackLatLngs.length - 1);
-    addRoadbookIndex(i, { noRender: true, label: roadbookLabels.get(i), locked });
-  }
+// Restore roadbook data (take a snapshot, then rebuild from scratch)
+const savedIdxArr = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : [];
+const savedLabels = new Map(Object.entries(plan.roadbookLabels || {}).map(([k,v]) => [Number(k), v]));
+legLabels       = new Map(Object.entries(plan.legLabels      || {}));
+legStopsMin     = new Map(Object.entries(plan.legStopsMin    || {}));
+legCondPct      = new Map(Object.entries(plan.legCondPct     || {}));
+legCritical     = new Map(Object.entries(plan.legCritical    || {}).map(([k,v]) => [k, !!v]));
+legObservations = new Map(Object.entries(plan.legObservations|| {}));
 
-  // Refresh UI
-  renderRoadbooksTable();
-  updateSummaryCard();
+// Start clean: remove any auto Start/Finish from processGpxText()
+clearMarkers();
+roadbookIdx = [];
+roadbookLabels.clear();
+
+// Rebuild markers + labels exactly as saved
+for (const i of savedIdxArr) {
+  const locked = (i === 0 || i === trackLatLngs.length - 1);
+  addRoadbookIndex(i, { noRender: true, label: savedLabels.get(i), locked });
+}
+
+renderRoadbooksTable();
+updateSummaryCard();
+showMainSections(true);
+
 
   saveBtn   && (saveBtn.disabled = false);
   exportCsv && (exportCsv.disabled = false);
@@ -901,10 +918,15 @@ if (saveBtn) {
   saveBtn.addEventListener('click', () => {
     if (!trackLatLngs.length) return;
     const data = serializePlan();
-    const name = (roadbookLabels.get(0) || "route").replace(/[^\w\-]+/g, '_');
-    downloadFile(`${name}_plan.json`, 'application/json', JSON.stringify(data, null, 2));
+
+    // Prefer the uploaded GPX base name; else fall back to Start label / "route"
+    const fallback = (roadbookLabels.get(0) || "route").replace(/[^\w\-]+/g, '_');
+    const base = (lastGpxName || fallback).replace(/[^\w\-]+/g, '_');
+
+    downloadFile(`${base}-timewisegpx.json`, 'application/json', JSON.stringify(data, null, 2));
   });
 }
+
 
 // Load saved plan (robust + clear diagnostics)
 if (loadBtn && loadInput) {

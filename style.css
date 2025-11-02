@@ -130,6 +130,13 @@ body {
 .top-bar {
   padding: 0.5rem;
   background-color: var(--top-bar-bg);
+  position: fixed;
+  bottom: 0;
+  left: auto;
+  right: auto;
+  top: auto;
+  width: 100%;
+  z-index: 9999;
 }
 .top-bar-content {
   display: flex;
