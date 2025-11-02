@@ -6,6 +6,9 @@
   --bg: #f7f7fb;
   --fg: #1a1a1a;
 
+  --top-bar-bg: #e8e8e8;
+  --top-bar-text: #94a3b8;
+  
   --card-bg: #ffffff;
   --card-border: #e6e6ee;
   --input-bg: #ffffff;
@@ -52,6 +55,9 @@
   color-scheme: dark;
   --bg: #121418;
   --fg: #e6e8ed;
+
+  --top-bar-bg: #2b2f38;
+  --top-bar-text: #94a3b8;
 
   --card-bg: #1b1e24;
   --card-border: #2b2f38;
@@ -118,6 +124,38 @@ body {
   padding: 16px;
 }
 
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+.top-bar {
+  padding: 0.5rem;
+  background-color: var(--top-bar-bg);
+}
+.top-bar-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1100px;
+  width: 92vw;
+  margin: 0 auto;
+  color: var(--top-bar-text);
+}
+.top-bar-content a {
+  color: var(--top-bar-text);
+}
+.author {
+  font-size: 0.8rem;
+}
+.socials {
+  display: flex;
+  gap: 0.5rem;
+}
+.social-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
 /* =========================================================
    HEADER
    ========================================================= */

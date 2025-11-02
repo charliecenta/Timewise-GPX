@@ -85,6 +85,9 @@ const legObservations = new Map();
 // Holds the sum of leg times including Stops + Conditions
 let lastTotalAdjustedH = 0;
 
+// Keep the raw GPX text so saves can be reloaded without re-uploading a file
+let lastGpxText = "";
+
 // Helper to toggle visibility of main sections
 function showMainSections(show) {
   const ids = ['mapCard', 'summaryCard', 'roadbooksCard'];
@@ -182,6 +185,8 @@ ensureMap();
   on(drop, ['dragenter','dragover'], highlight);
   on(drop, ['dragleave','drop'],    unhighlight);
 
+
+
   // --- NEW: status updaters
   const kib = (n) => (n/1024).toFixed(1) + ' KB';
   const setReady = (file) => {
@@ -241,8 +246,6 @@ ensureMap();
 })();
 
 
-
-
 // Advanced toggle: show/hide advanced fields
 if (showAdvChk) {
   showAdvChk.addEventListener('change', () => {
@@ -261,15 +264,12 @@ if (activitySel) {
   applyActivityPreset(activitySel.value || 'hike');
 }
 
-// ---------- Main flow ----------
-calcBtn.addEventListener("click", async () => {
-  const fileInput = document.getElementById("gpxFile");
-  if (!fileInput?.files?.length) {
-    alert("Please upload a GPX file.");
-    return;
-  }
+// Process a GPX text string using current DOM settings.
+// When importRoadbooks=false, we do not import GPX waypoints (the plan will restore them).
+async function processGpxText(gpxText, importRoadbooks = true) {
+  lastGpxText = gpxText; // keep raw GPX for Save/Load
 
-  const importRoadbooks = document.getElementById("importRoadbooks")?.checked ?? true;
+  const importWpts = importRoadbooks;
 
   const speedFlatKmh   = toPosNum(document.getElementById("speedFlat")?.value, 4);
   const speedVertMh    = toPosNum(document.getElementById("speedVert")?.value, 300);
@@ -283,7 +283,6 @@ calcBtn.addEventListener("click", async () => {
     return;
   }
 
-  const gpxText = await readFileAsText(fileInput.files[0]);
   const segments = parseGPXToSegments(gpxText);
   if (!segments.length) {
     outputEl.innerHTML = "<p>No track segments found.</p>";
@@ -321,11 +320,10 @@ calcBtn.addEventListener("click", async () => {
     const elevSmooth = medianFilter(elev, winSamples);
     const elevFiltered = cumulativeDeadbandFilter(elevSmooth, elevDeadbandM);
 
-    // Mark where this segment starts in the global point list
+    // segment break
     trackBreakIdx.push(trackLatLngs.length);
 
-    // Keep cumulative arrays aligned with points at segment boundaries.
-    // If we already have points, push a carry-forward so cum* arrays gain +1 here.
+    // keep cum arrays aligned (+1 at boundaries)
     if (trackLatLngs.length > 0) {
       cumDistKm.push(cumDistKm[cumDistKm.length - 1]);
       cumAscentM.push(cumAscentM[cumAscentM.length - 1]);
@@ -333,14 +331,10 @@ calcBtn.addEventListener("click", async () => {
       cumTimeH.push(cumTimeH[cumTimeH.length - 1]);
     }
 
-    // Append this segment’s coordinates (points count +n)
     const latlngs = resampled.map(p => [p.lat, p.lon]);
     trackLatLngs = trackLatLngs.concat(latlngs);
 
-    // Accumulate per-step values (steps count +(n-1))
     for (let i = 1; i < resampled.length; i++) {
-      const curIdx  = globalIdxOffset + i;
-
       const p1 = resampled[i - 1];
       const p2 = resampled[i];
       const distKm = haversineKm(p1.lat, p1.lon, p2.lat, p2.lon);
@@ -361,42 +355,28 @@ calcBtn.addEventListener("click", async () => {
       totalDescentM += descentM;
       totalTimeHrs  += segTimeH;
 
-      // cum* arrays gain +1 per step here
       cumDistKm.push(cumDistKm[cumDistKm.length - 1] + distKm);
       cumAscentM.push(cumAscentM[cumAscentM.length - 1] + ascentM);
       cumDescentM.push(cumDescentM[cumDescentM.length - 1] + descentM);
       cumTimeH.push(cumTimeH[cumTimeH.length - 1] + segTimeH);
-
-      debugRows.push({
-        i: curIdx,
-        distKm,
-        dEleSmooth: Math.round((elevSmooth[i] ?? 0) - (elevSmooth[i - 1] ?? 0)),
-        dEleFiltered: Math.round(dEleF),
-        ascentM,
-        descentM,
-        segTimeH
-      });
     }
-
-    // Advance global index by number of points in this segment
     globalIdxOffset += resampled.length;
   }
 
-
-  // draw polyline on live map
+  // draw/fit
   if (polyline) polyline.remove();
   polyline = L.polyline(trackLatLngs, { weight: 4, color: '#2a7de1' }).addTo(map);
   map.fitBounds(polyline.getBounds());
   clearBtn.disabled = false;
 
-  // add start/end roadbooks
+  // start/end waypoints
   if (trackLatLngs.length >= 2) {
     addRoadbookIndex(0, { noRender: true, label: "Start", locked: true });
     addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: "Finish", locked: true });
   }
 
-  // import roadbooks from GPX file
-  if (importRoadbooks) {
+  // optionally import GPX waypoints (NOT used when restoring a plan)
+  if (importWpts) {
     const waypoints = parseGPXRoadbooks(gpxText);
     for (const wp of waypoints) {
       const idx = nearestIndexOnTrack([wp.lat, wp.lon], trackLatLngs);
@@ -409,24 +389,33 @@ calcBtn.addEventListener("click", async () => {
   updateSummaryCard();
   showMainSections(true);
 
-  // Now that the map is visible, force Leaflet to recalc size and refit
   requestAnimationFrame(() => {
     try {
       map.invalidateSize(true);
       if (polyline) map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
-    } catch (e) {
-      console.warn('invalidateSize/fitBounds failed:', e);
-    }
+    } catch {}
   });
-
-
 
   // enable actions
   saveBtn.disabled   = false;
   exportCsv.disabled = false;
-  printBtn.disabled  = true;   // will enable after table render to ensure presence
+  printBtn.disabled  = true;
   setTimeout(() => { printBtn.disabled = false; }, 0);
+}
+
+
+// ---------- Main flow ----------
+calcBtn.addEventListener("click", async () => {
+  const fileInput = document.getElementById("gpxFile");
+  if (!fileInput?.files?.length) {
+    alert("Please upload a GPX file.");
+    return;
+  }
+  const gpxText = await readFileAsText(fileInput.files[0]);
+  const importRoadbooks = document.getElementById("importRoadbooks")?.checked ?? true;
+  await processGpxText(String(gpxText || ""), importRoadbooks);
 });
+
 
 
 
@@ -794,7 +783,6 @@ function serializePlan() {
     const condPct  = legCondPct.get(key) ?? 0;
     const name     = legLabels.get(key) || getDefaultLegLabel(a, b);
     const obs      = legObservations.get(key) ?? "";
-
     const totalH   = baseH * (1 + condPct / 100) + (stopsMin / 60);
 
     cumDistKmShown += distKm;
@@ -824,6 +812,7 @@ function serializePlan() {
   return {
     version: 2,
     createdAt: new Date().toISOString(),
+    gpxText: lastGpxText || null,               // <-- embed GPX here
     signature: trackSignature(),
     settings,
     roadbookIdx,
@@ -840,97 +829,155 @@ function serializePlan() {
 
 
 
-function restorePlanFromJSON(plan) {
-  const sig = trackSignature();
-  if (!sig || !plan.signature || sig.n !== plan.signature.n) {
-    alert("Heads-up: this saved plan may belong to a different GPX or settings.");
+
+async function restorePlanFromJSON(plan) {
+  // If there is no current track, try to rebuild it from the saved GPX using saved settings.
+  if (!trackLatLngs.length) {
+    if (!plan.gpxText) {
+      alert("This saved plan has no embedded GPX. Please process a GPX file first, then load the plan.");
+      return;
+    }
+
+    // Apply saved settings BEFORE processing (so resample/smooth match)
+    const s = plan.settings || {};
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
+    setVal("activityType",   s.activity);
+    setVal("speedFlat",      s.speedFlatKmh);
+    setVal("speedVert",      s.speedVertMh);
+    setVal("downhillFactor", s.downhillFactor);
+    setVal("spacingM",       s.spacingM);
+    setVal("smoothWinM",     s.smoothWinM);
+    setVal("elevDeadbandM",  s.elevDeadbandM);
+
+    // Build the track (do NOT import roadbooks from GPX; the plan restores them)
+    await processGpxText(plan.gpxText, /* importRoadbooks */ false);
   }
 
-  // Rebuild core arrays/maps
+  // Optional signature warning
+  const sig = trackSignature();
+  if (plan.signature && sig && sig.n !== plan.signature.n) {
+    console.warn("Saved plan may belong to a different GPX/settings.");
+  }
+
+  // Restore roadbook data
   roadbookIdx     = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : [];
   roadbookLabels  = new Map(Object.entries(plan.roadbookLabels || {}).map(([k,v]) => [Number(k), v]));
-  legLabels       = new Map(Object.entries(plan.legLabels || {}));
-  legStopsMin     = new Map(Object.entries(plan.legStopsMin || {}));
-  legCondPct      = new Map(Object.entries(plan.legCondPct || {}));
-  legCritical     = new Map(Object.entries(plan.legCritical || {}).map(([k,v]) => [k, !!v]));
-  legObservations = new Map(Object.entries(plan.legObservations || {}).map(([k,v]) => [k, String(v || "")])); // ✅ restore Observations
+  legLabels       = new Map(Object.entries(plan.legLabels      || {}));
+  legStopsMin     = new Map(Object.entries(plan.legStopsMin    || {}));
+  legCondPct      = new Map(Object.entries(plan.legCondPct     || {}));
+  legCritical     = new Map(Object.entries(plan.legCritical    || {}).map(([k,v]) => [k, !!v]));
+  legObservations = new Map(Object.entries(plan.legObservations|| {}));
 
-  // (Optional) restore settings to the UI
-  const s = plan.settings || {};
-  if (document.getElementById("activityType") && s.activity) document.getElementById("activityType").value = s.activity;
-  if (document.getElementById("speedFlat"))      document.getElementById("speedFlat").value      = s.speedFlatKmh   ?? 4;
-  if (document.getElementById("speedVert"))      document.getElementById("speedVert").value      = s.speedVertMh    ?? 300;
-  if (document.getElementById("downhillFactor")) document.getElementById("downhillFactor").value = s.downhillFactor ?? 0.6667;
-  if (document.getElementById("spacingM"))       document.getElementById("spacingM").value       = s.spacingM       ?? 5;
-  if (document.getElementById("smoothWinM"))     document.getElementById("smoothWinM").value     = s.smoothWinM     ?? 35;
-  if (document.getElementById("elevDeadbandM"))  document.getElementById("elevDeadbandM").value  = s.elevDeadbandM  ?? 2;
-
-  // Rebuild markers and table
+  // Rebuild map markers from the saved indices/labels
   clearMarkers();
   for (const i of roadbookIdx) {
     const locked = (i === 0 || i === trackLatLngs.length - 1);
     addRoadbookIndex(i, { noRender: true, label: roadbookLabels.get(i), locked });
   }
+
+  // Refresh UI
   renderRoadbooksTable();
   updateSummaryCard();
+
+  saveBtn   && (saveBtn.disabled = false);
+  exportCsv && (exportCsv.disabled = false);
+  printBtn  && (printBtn.disabled = false);
 }
 
 
-if (saveBtn) saveBtn.addEventListener('click', () => {
-  if (!trackLatLngs.length) return;
-  const data = serializePlan();
-  const name = (roadbookLabels.get(0) || "route").replace(/[^\w\-]+/g, '_');
-  downloadFile(`${name}_plan.json`, 'application/json', JSON.stringify(data, null, 2));
-});
 
+
+// Save current plan
+if (saveBtn) {
+  saveBtn.addEventListener('click', () => {
+    if (!trackLatLngs.length) return;
+    const data = serializePlan();
+    const name = (roadbookLabels.get(0) || "route").replace(/[^\w\-]+/g, '_');
+    downloadFile(`${name}_plan.json`, 'application/json', JSON.stringify(data, null, 2));
+  });
+}
+
+// Load saved plan (robust: handles BOM, wrong file type, legacy plans)
 if (loadBtn && loadInput) {
   loadBtn.addEventListener('click', () => loadInput.click());
   loadInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
-      const plan = JSON.parse(await file.text());
-      restorePlanFromJSON(plan);
+      const text = await file.text();
+      const trimmed = String(text).trim();
+
+      // If user picked a GPX instead of a plan JSON, just process the GPX.
+      if (/^</.test(trimmed)) {
+        await processGpxText(trimmed, /* importRoadbooks */ true);
+        alert("Loaded GPX file. (Tip: use the Save button to export a resumable plan JSON next time.)");
+        return;
+      }
+
+      // Try parsing as JSON (strip BOM first)
+      let plan;
+      try {
+        plan = safeParseJSON(text);
+      } catch (parseErr) {
+        console.error('JSON parse failed:', parseErr);
+        alert("Could not parse the plan JSON. Make sure you selected a file saved by this app.");
+        return;
+      }
+
+      // Handle very old saves that had no gpxText
+      if (!plan.gpxText && !trackLatLngs.length) {
+        alert("This saved plan doesn’t contain the embedded GPX. Please process the original GPX once, then load the plan again.");
+        return;
+      }
+
+      await restorePlanFromJSON(plan);
     } catch (err) {
       console.error(err);
-      alert("Could not parse the plan JSON.");
+      alert("Could not load the file.");
     } finally {
+      // reset the input so the same file can be chosen again
       loadInput.value = "";
     }
   });
 }
 
-if (exportCsv) exportCsv.addEventListener('click', () => {
-  const table = roadbooksEl.querySelector('table');
-  if (!table) { alert('No table to export.'); return; }
 
-  const rows = [];
-  // header rows as-is
-  table.querySelectorAll('thead tr').forEach(tr =>
-    rows.push([...tr.children].map(th => th.textContent.trim()))
-  );
 
-  // body rows: use selected option text for selects
-  table.querySelectorAll('tbody tr').forEach(tr => {
-    const cells = [...tr.children].map(td => {
-      const sel = td.querySelector('select');
-      if (sel) {
-        const opt = sel.options[sel.selectedIndex];
-        return (opt ? opt.text : sel.value || '');
-      }
-      // for editable spans, use their text
-      const span = td.querySelector('span');
-      if (span) return span.textContent.trim();
-      return td.textContent.replace(/\s+/g,' ').trim();
+
+// Export table as CSV
+if (exportCsv) {
+  exportCsv.addEventListener('click', () => {
+    const table = roadbooksEl.querySelector('table');
+    if (!table) { alert('No table to export.'); return; }
+
+    const rows = [];
+    // headers
+    table.querySelectorAll('thead tr').forEach(tr =>
+      rows.push([...tr.children].map(th => th.textContent.trim()))
+    );
+    // body (respect <select> chosen text and editable spans)
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      const cells = [...tr.children].map(td => {
+        const sel = td.querySelector('select');
+        if (sel) {
+          const opt = sel.options[sel.selectedIndex];
+          return (opt ? opt.text : sel.value || '');
+        }
+        const span = td.querySelector('span');
+        if (span) return span.textContent.trim();
+        return td.textContent.replace(/\s+/g,' ').trim();
+      });
+      rows.push(cells);
     });
-    rows.push(cells);
-  });
 
-  const csv = rows
-    .map(r => r.map(v => /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v).join(','))
-    .join('\n');
-  downloadFile('roadbooks_table.csv', 'text/csv;charset=utf-8', csv);
-});
+    const csv = rows
+      .map(r => r.map(v => /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v).join(','))
+      .join('\n');
+    downloadFile('roadbooks_table.csv', 'text/csv;charset=utf-8', csv);
+  });
+}
+
 
 
 // ---------- GPX parsing ----------
@@ -1123,6 +1170,19 @@ function clampToOdd(val, minOdd, maxOdd) { val = clamp(val, minOdd, maxOdd); if 
 
 function sanitizeInt(str, def = 0) { const m = String(str ?? "").match(/\d+/); const n = m ? parseInt(m[0], 10) : def; return Number.isFinite(n) && n >= 0 ? n : def; }
 function minutesToText(min) { return `${min} min`; }
+
+function safeParseJSON(text) {
+  // Strip UTF-8 BOM if present
+  const clean = String(text || '').replace(/^\uFEFF/, '');
+  return JSON.parse(clean);
+}
+
+async function processGpxFromString(gpxText) {
+  if (!gpxText) throw new Error("Empty GPX text");
+  lastGpxText = gpxText;
+  const xml = new DOMParser().parseFromString(gpxText, "application/xml");
+  await processParsedGpx(xml);
+}
 
 function percentToText(p) {
   const n = Number.isFinite(p) ? Math.round(p) : 0;
