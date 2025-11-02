@@ -33,6 +33,15 @@ const ACTIVITY_PRESETS = {
 const MIN_COND_PCT = -90;
 const MAX_COND_PCT = 300;
 
+// Marker icon
+const markerIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconSize: [25, 41],
+  iconAnchor: [12.5, 41], // anchor = bottom center of icon
+  tooltipAnchor: [0, -28] // vertical offset to position tooltip above marker
+});
+
+
 function applyActivityPreset(kind) {
   const p = ACTIVITY_PRESETS[kind];
   if (!p) return;
@@ -85,8 +94,51 @@ function showMainSections(show) {
     el.classList.toggle('is-hidden', !show);
   });
 }
-
 showMainSections(false);
+
+// Build the mini toolbar HTML for a marker
+function waypointToolbarHtml() {
+  return `
+    <div class="wb-toolbar">
+      <button type="button" class="wb-btn wb-edit"><span class="ico">✏️</span>Edit</button>
+      <button type="button" class="wb-btn wb-del"><span class="ico">🗑️</span>Delete</button>
+    </div>
+  `;
+}
+
+// Delete waypoint
+function deleteWaypoint(m, confirmed = false) {
+  if (m.__locked) return;
+
+  // Only confirm here if the caller hasn't already done it
+  if (!confirmed) {
+    if (!confirm('Are you sure you want to remove this waypoint?')) return;
+  }
+
+  // remove index from ordered list
+  const pos = roadbookIdx.indexOf(m.__idx);
+  if (pos >= 0) roadbookIdx.splice(pos, 1);
+
+  // find the marker in our array
+  const mi = markers.findIndex(mm => mm.__idx === m.__idx);
+
+  // remove the label popup first (so we target the correct marker)
+  removeLabelPopup(m);
+
+  // then remove the marker and splice
+  if (mi >= 0) { markers[mi].remove(); markers.splice(mi, 1); }
+
+  // clear per-leg data involving this waypoint
+  const mapsToClean = [legLabels, legStopsMin, legCondPct, legCritical, legObservations];
+  mapsToClean.forEach(mapObj => {
+    for (const k of [...mapObj.keys()]) {
+      const [a, b] = String(k).split('|').map(Number);
+      if (a === m.__idx || b === m.__idx) mapObj.delete(k);
+    }
+  });
+
+  renderRoadbooksTable();
+}
 
 // ---------- Map init (live only) ----------
 function ensureMap() {
@@ -107,8 +159,8 @@ function ensureMap() {
   map.on('click', (e) => {
     if (!trackLatLngs.length) return;
     const i = nearestIndexOnTrack([e.latlng.lat, e.latlng.lng], trackLatLngs);
-    addRoadbookIndex(i);
-  });
+    addRoadbookIndex(i, { editOnCreate: true });   // ✅ open editor immediately
+  }); 
 }
 ensureMap();
 
@@ -275,11 +327,7 @@ calcBtn.addEventListener("click", async () => {
   }
 
   renderRoadbooksTable();
-
-  // Refresh Summary using the latest cumulative arrays
   updateSummaryCard();
-
-
   showMainSections(true);
 
   // Now that the map is visible, force Leaflet to recalc size and refit
@@ -328,7 +376,7 @@ if (printBtn) {
 
 // ---------- Roadbooks (add/remove/labels) ----------
 function addRoadbookIndex(i, opts = {}) {
-  const { noRender = false, label = "", locked = false } = opts;
+  const { noRender = false, label = "", locked = false, editOnCreate = false } = opts;
   i = Math.max(0, Math.min(trackLatLngs.length - 1, Math.round(i)));
 
   // If this index already exists, optionally update its label and return.
@@ -348,63 +396,77 @@ function addRoadbookIndex(i, opts = {}) {
                   roadbookLabels.get(i) ||
                   (i === 0 ? "Start" :
                    i === trackLatLngs.length - 1 ? "Finish" :
-                   `WP ${roadbookIdx.indexOf(i)}`);
+                   `WP ${roadbookIdx.indexOf(i) + 1}`);
 
   roadbookLabels.set(i, initial);
 
-  const m = L.marker(trackLatLngs[i]).addTo(map);
+  const m = L.marker(trackLatLngs[i], { icon: markerIcon }).addTo(map);
   m.__idx = i;
   m.__locked = locked;
-  m.bindTooltip(initial, { permanent: true, direction: 'top', offset: [0, -12], opacity: 0.85 });
 
-m.on('click', () => {
-  if (m.__locked) return;
+  if (label) setWaypointName(i, label);
 
-  // Remove this index from the ordered list
-  const pos = roadbookIdx.indexOf(m.__idx);
-  if (pos >= 0) roadbookIdx.splice(pos, 1);
+  // Always-open label popup above the pin
+  ensureLabelPopup(m);
 
-  // Remove marker + label
-  const mi = markers.findIndex(mm => mm.__idx === m.__idx);
-  if (mi >= 0) { markers[mi].remove(); markers.splice(mi, 1); }
-  roadbookLabels.delete(m.__idx);
+  // Remove any prior listeners
+  m.off('click');
+  m.off('dblclick');
 
-  // Purge any leg-based data involving this waypoint (a|b keys)
-  const mapsToClean = [legLabels, legStopsMin, legCondPct, legCritical, legObservations];
-  mapsToClean.forEach(mapObj => {
-    for (const k of [...mapObj.keys()]) {
-      const [a, b] = String(k).split('|').map(Number);
-      if (a === m.__idx || b === m.__idx) mapObj.delete(k);
-    }
+  // Prevent marker clicks from opening the editor (label only should trigger it)
+  m.on('click', (e) => {
+    e.originalEvent?.stopPropagation();
+    e.originalEvent?.preventDefault();
+    return false;
+  });
+  m.on('dblclick', (e) => {
+    e.originalEvent?.stopPropagation();
+    e.originalEvent?.preventDefault();
+    return false;
   });
 
-  renderRoadbooksTable();
-});
+  m.unbindPopup();
 
-
+  // Keep label responsible for editing
+  ensureLabelPopup(m);
   markers.push(m);
+
+  // If this was a map-click creation, open editor immediately
+  if (editOnCreate) openNameEditor(m);
+
   if (!noRender) renderRoadbooksTable();
+
 }
 
 
-function clearMarkers() { markers.forEach(m => m.remove()); markers = []; }
+function clearMarkers() {
+  markers.forEach(m => {
+    removeLabelPopup(m);
+    m.remove();
+  });
+  markers = [];
+  renderRoadbooksTable();
+}
+
 
 function setRoadbookLabel(idx, newLabel) {
   const label = (newLabel || "").trim();
   if (!roadbookIdx.includes(idx)) return;
+
   roadbookLabels.set(idx, label || `#${idx}`);
+
   const m = markers.find(mm => mm.__idx === idx);
-  if (m) {
-    const tt = m.getTooltip();
-    if (tt) tt.setContent(roadbookLabels.get(idx));
-    else m.bindTooltip(roadbookLabels.get(idx), { permanent: true, direction: 'top', offset: [0, -12], opacity: 0.85 });
-  }
+  if (m) ensureLabelPopup(m);  // refresh content & position
 }
+
+
 
 // ---------- Leg names ----------
 function getLegKey(a, b) { return `${a}|${b}`; }
-function getWaypointLabel(idx) { return (roadbookLabels.get(idx) || `#${idx}`); }
-function getDefaultLegLabel(a, b) { return `${getWaypointLabel(a)} \u2192 ${getWaypointLabel(b)}`; } // →
+function getDefaultLegLabel(a, b) {
+  return `${getWaypointName(a)} \u2192 ${getWaypointName(b)}`; // →
+}
+
 
 function setLegLabelByKey(key, label) {
   const txt = (label || "").trim();
@@ -451,8 +513,6 @@ function renderRoadbooksTable() {
   lastTotalAdjustedH = totalAdjustedH;
 
   let html = `
-    <p>Click the map to add waypoints; click a waypoint to remove it (locked ones won’t remove).
-    Double-click <em>Name</em>, edit <em>Stops</em>/<em>Cond</em>, set <em>Critical</em>, and add <em>Observations</em> per leg.</p>
     <table>
       <thead>
         <tr>
@@ -1037,6 +1097,7 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+
 // Sum times per leg for summary: includes Conditions, optionally Stops
 function computeTimeRollups() {
   if (!trackLatLngs.length || roadbookIdx.length < 2 || cumTimeH.length === 0) {
@@ -1073,6 +1134,186 @@ function computeTimeRollups() {
     totalH: activityWithCondH + stopsH
   };
 }
+
+// --- Waypoint label helpers ---
+function getWaypointName(idx) {
+  // Prefer explicit label; else fallback to ordinal like "WP 3"
+  if (roadbookLabels.has(idx)) return roadbookLabels.get(idx);
+  const pos = roadbookIdx.indexOf(idx);
+  return pos >= 0 ? `WP ${pos + 1}` : `WP ${idx}`;
+}
+
+function setWaypointName(idx, name) {
+  const clean = String(name || '').trim();
+  if (clean) roadbookLabels.set(idx, clean);
+  else roadbookLabels.delete(idx);
+}
+
+// Build the label HTML shown above each marker (clickable)
+function labelHtml(idx, name) {
+  return `<button type="button" class="wb-label-btn" data-idx="${idx}">
+            <span class="wb-name">${escapeHtml(name)}</span>
+          </button>`;
+}
+
+// Ensure a marker has a permanent "label popup" above it.
+// Reuses existing instance on rename; creates it if missing.
+function ensureLabelPopup(marker) {
+  const idx  = marker.__idx;
+  const name = getWaypointName(idx);
+  const html = `<button type="button" class="wb-label-btn" data-idx="${idx}">
+                  <span class="wb-name">${escapeHtml(name)}</span>
+                </button>`;
+
+  // Create if missing
+  if (!marker.__label) {
+    marker.__label = L.popup({
+      closeButton: false,
+      autoClose: false,
+      closeOnClick: false,
+      interactive: true,
+      className: 'wb-labelpop',
+      offset: [0, -28],
+      minWidth: 1,
+      maxWidth: 10000,
+      autoPan: false,
+      keepInView: false
+    }).setLatLng(marker.getLatLng());
+    map.addLayer(marker.__label);
+  }
+
+  // Update content + position
+  marker.__label.setLatLng(marker.getLatLng());
+  marker.__label.setContent(html);
+
+  // 👉 Attach AFTER Leaflet has measured & (re)rendered the DOM.
+  // We wait two frames, call update(), then one more frame to bind.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (marker.__label && marker.__label.update) marker.__label.update();
+
+      requestAnimationFrame(() => {
+        const el = marker.__label.getElement?.();
+        if (!el) return;
+
+        // Only the button is interactive (wrapper is click-through via CSS)
+        const btn = el.querySelector('.wb-label-btn');
+        if (!btn) return;
+
+        if (marker.__labelClickHandler) {
+          btn.removeEventListener('click', marker.__labelClickHandler);
+        }
+        marker.__labelClickHandler = (e) => {
+          e.preventDefault();
+          e.stopPropagation?.();
+          openNameEditor(marker);
+        };
+        btn.addEventListener('click', marker.__labelClickHandler);
+      });
+    });
+  });
+}
+
+
+
+
+
+// Remove the label popup when a waypoint is deleted
+function removeLabelPopup(marker) {
+  if (marker && marker.__label) {
+    map.removeLayer(marker.__label);
+    marker.__label = null;
+  }
+}
+
+
+
+// Attach an inline editor popup to a marker.
+function openNameEditor(marker) {
+  const idx = marker.__idx;
+  const current = getWaypointName(idx);
+  const html = `
+    <div class="wb-edit-wrap" style="min-width:200px">
+      <label style="display:block;font-size:12px;margin:0 0 6px;">Waypoint name</label>
+      <input id="wb-edit-input" type="text" value="${escapeHtml(current)}"
+             style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;" />
+      <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+        <button id="wb-edit-save"   style="all:unset;background:#2a7de1;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer">Save</button>
+        <button id="wb-edit-cancel" style="all:unset;background:#eee;color:#333;border-radius:6px;padding:6px 10px;cursor:pointer">Cancel</button>
+        <button id="wb-edit-delete" style="all:unset;background:#e5484d;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer">Delete</button>
+      </div>
+    </div>
+  `;
+
+  // 🆕 detached popup (not bound to the marker)
+  const editor = L.popup({
+    closeButton: false,
+    autoClose: true,
+    closeOnClick: false,
+    autoPan: true,
+    className: 'wb-editpop',
+    offset: [0, -28]
+  })
+    .setLatLng(marker.getLatLng())
+    .setContent(html)
+    .openOn(map); // <- open on the map, not on the marker
+
+  // After it renders, wire the buttons/keys
+  requestAnimationFrame(() => {
+    const root = editor.getElement?.();
+    const input = root?.querySelector('#wb-edit-input');
+
+    const closeEditor = () => {
+      // remove this specific popup
+      map.closePopup(editor);
+    };
+    const refreshLabel = () => {
+      ensureLabelPopup(marker);
+      renderRoadbooksTable();
+    };
+
+    const saveName = () => {
+      const val = (input?.value ?? '').trim();
+      setWaypointName(idx, val);
+      closeEditor();
+      refreshLabel();
+    };
+    const cancelEdit = () => { closeEditor(); refreshLabel(); };
+
+    root?.querySelector('#wb-edit-save')?.addEventListener('click', (e) => { e.preventDefault(); saveName(); });
+    root?.querySelector('#wb-edit-cancel')?.addEventListener('click', (e) => { e.preventDefault(); cancelEdit(); });
+    root?.querySelector('#wb-edit-delete')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Do the single confirmation here
+      if (confirm('Are you sure you want to remove this waypoint?')) {
+        deleteWaypoint(marker, true); // <-- tell deleteWaypoint it's already confirmed
+        map.closePopup(editor);
+      }
+    });
+
+
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveName(); }
+      if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+    });
+
+    // focus for quick typing
+    input?.focus();
+    input?.select();
+  });
+}
+
+
+
+// Just wire events to the opener (dblclick / right-click)
+function attachNameEditor(marker) {
+  marker.off('dblclick');      // avoid double-binding
+  marker.off('contextmenu');
+  marker.on('dblclick', (e) => { e.originalEvent?.preventDefault?.(); openNameEditor(marker); });
+  marker.on('contextmenu', (e) => { e.originalEvent?.preventDefault?.(); openNameEditor(marker); });
+}
+
+
 
 function updateSummaryCard() {
   if (!trackLatLngs.length || cumDistKm.length === 0) {

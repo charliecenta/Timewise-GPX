@@ -163,6 +163,10 @@ h1 { margin: 0; font-size: 20px; }
   background: var(--input-bg);
   color: var(--fg);
 }
+.checkboxes {
+  display: flex;
+  flex-direction: column;
+}
 
 /* =========================================================
    TOOLTIP HELP ICON
@@ -284,6 +288,94 @@ button:disabled {
   border-radius: 8px;
   background: var(--map-bg);
 }
+
+/* === Waypoint name as a permanent popup label === */
+.leaflet-popup.wb-labelpop { pointer-events: none; }
+.wb-labelpop .leaflet-popup-content-wrapper,
+.wb-labelpop .leaflet-popup-tip { pointer-events: none; }
+.wb-labelpop .wb-label-btn { pointer-events: auto; }
+.leaflet-marker-icon.leaflet-interactive, .leaflet-image-layer.leaflet-interactive, .leaflet-pane > svg path.leaflet-interactive, svg.leaflet-image-layer.leaflet-interactive path { pointer-events: none !important; }
+
+
+.wb-label-btn { cursor: pointer; }
+
+
+.wb-labelpop .leaflet-popup-content-wrapper {
+  background: #fff;
+  color: #111;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  display: inline-block;
+}
+.wb-labelpop .leaflet-popup-content { 
+  margin: 0;
+  width: auto !important; 
+}
+.wb-labelpop .leaflet-popup-tip { /* keep the little caret */ }
+
+
+.wb-label-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.wb-label-btn:hover { filter: brightness(0.96); }
+
+.wb-label-btn:focus-visible { outline: 2px solid var(--accent); border-radius: 6px; }
+
+
+
+/* Map mini-toolbar shown when a waypoint is selected */
+.wb-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.wb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.wb-btn:hover { opacity: .92; }
+.wb-btn .ico { font-size: 14px; line-height: 1; }
+
+
+/* Inline buttons inside the label */
+.wb-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+.wb-inline-btn:hover { opacity: .9; }
+
+
 
 /* =========================================================
    TABLES

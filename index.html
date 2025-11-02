@@ -26,7 +26,7 @@
   <main class="wrap">
     <!-- Controls -->
     <section class="card" id="settingsCard">
-      <h2>Plan settings</h2>
+      <h2>Itinerary settings</h2>
 
       <div class="controls" id="controls">
         <!-- File -->
@@ -64,45 +64,46 @@
           </span>
           <input type="number" id="downhillFactor" step="0.01" value="0.6667" />
         </label>
-
-        <!-- Advanced toggle -->
-        <label class="field checkbox">
-          <input type="checkbox" id="showAdvanced" />
-          <span>Show advanced configuration</span>
-        </label>
-
+        <div class="checkboxes">
+          <label class="checkbox">
+            <input type="checkbox" id="importRoadbooks" checked />
+            <span>Import roadbooks from GPX</span>
+          </label>
+          <!-- Advanced toggle -->
+          <label class="checkbox">
+            <input type="checkbox" id="showAdvanced" />
+            <span>Show advanced configuration</span>
+          </label>
+        </div>
         <!-- Advanced fields (hidden by default) -->
-        <label class="field advanced">
-          <span class="label label-row">
-            Resample (m)
-            <button type="button" class="help-tip" aria-label="Resample info"
-              data-tip="Create evenly spaced points along the track. Smaller values (e.g., 1–3 m) capture curves better but use more points. Larger values run faster with less detail.">i</button>
-          </span>
-          <input type="number" id="spacingM" step="1" value="3" />
-        </label>
+        <div class="advanced-wrap">
+          <label class="field advanced">
+            <span class="label label-row">
+              Resample (m)
+              <button t.wb-centerype="button" class="help-tip" aria-label="Resample info"
+                data-tip="Create evenly spaced points along the track. Smaller values (e.g., 1–3 m) capture curves better but use more points. Larger values run faster with less detail.">i</button>
+            </span>
+            <input type="number" id="spacingM" step="1" value="3" />
+          </label>
 
-        <label class="field advanced">
-          <span class="label label-row">
-            Smooth window (m)
-            <button type="button" class="help-tip" aria-label="Smooth window info"
-              data-tip="Median filter size in metres used to remove elevation spikes. Small windows keep detail; larger windows are smoother but can flatten short features.">i</button>
-          </span>
-          <input type="number" id="smoothWinM" step="1" value="15" />
-        </label>
+          <label class="field advanced">
+            <span class="label label-row">
+              Smooth window (m)
+              <button type="button" class="help-tip" aria-label="Smooth window info"
+                data-tip="Median filter size in metres used to remove elevation spikes. Small windows keep detail; larger windows are smoother but can flatten short features.">i</button>
+            </span>
+            <input type="number" id="smoothWinM" step="1" value="15" />
+          </label>
 
-        <label class="field advanced">
-          <span class="label label-row">
-            Elevation deadband (m)
-            <button type="button" class="help-tip" aria-label="Deadband info"
-              data-tip="Ignore elevation wiggles smaller than this threshold when computing ascent/descent (reduces GPS jitter). Typical: 1–3 m.">i</button>
-          </span>
-          <input type="number" id="elevDeadbandM" step="1" value="2" />
-        </label>
-
-        <label class="field checkbox">
-          <input type="checkbox" id="importRoadbooks" checked />
-          <span>Import roadbooks from GPX</span>
-        </label>
+          <label class="field advanced">
+            <span class="label label-row">
+              Elevation deadband (m)
+              <button type="button" class="help-tip" aria-label="Deadband info"
+                data-tip="Ignore elevation wiggles smaller than this threshold when computing ascent/descent (reduces GPS jitter). Typical: 1–3 m.">i</button>
+            </span>
+            <input type="number" id="elevDeadbandM" step="1" value="2" />
+          </label>     
+        </div>
       </div>
 
       <div class="actions">
@@ -133,7 +134,7 @@
 
     <!-- Roadbooks -->
     <section class="card is-hidden" id="roadbooksCard">
-      <h2>Roadbooks</h2>
+      <h2>Planning</h2>
       <div id="roadbooks" class="table-wrap"></div>
     </section>
   </main>
