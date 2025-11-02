@@ -114,6 +114,11 @@ h1 { margin: 0; font-size: 20px; }
 }
 #themeToggle:hover { background: var(--btn-hover); }
 
+.brand { display:flex; align-items:center; text-decoration:none; }
+.brand-logo { display:block; height:50px; width:auto; }
+@media (max-width: 560px) { .brand-logo { height:26px; } }
+
+
 /* =========================================================
    CARDS
    ========================================================= */
