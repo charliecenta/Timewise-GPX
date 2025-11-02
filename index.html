@@ -17,68 +17,76 @@
 <body>
   <header class="wrap">
     <a class="brand" href="./" aria-label="Timewise GPX">
-      <img src="assets/timewisegpx_logo.svg" alt="Timewise GPX" class="brand-logo">
+      <img src="assets/timewisegpx_logo.svg" alt="Timewise GPX" id="appLogo" class="brand-logo">
     </a>
     <div class="header-actions">
       <button id="themeToggle" title="Toggle theme">🌗</button>
-      <button id="printBtn" disabled>Print</button>
+      <button id="savePlanBtn" disabled>Save</button>
+      <button id="loadPlanBtn">Load</button>
     </div>
   </header>
 
   <main class="wrap">
     <!-- Controls -->
-    <section class="card" id="settingsCard">
-      <h2>Itinerary settings</h2>
-
-      <div class="controls" id="controls">
+    <section class="grid">
+      <div class="card">
+        <h2>GPX Upload</h2>
         <!-- File -->
         <label class="field file">
-          <span>GPX file</span>
-          <input type="file" id="gpxFile" accept=".gpx" />
-        </label>
+          
+          <!-- Upload box -->
+          <div id="gpxDrop" class="dropzone" aria-label="Upload GPX file" tabindex="0">
+            <!-- icon -->
+            <svg aria-hidden="true" width="56" height="56" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 2l4 4h-3v6h-2V6H8l4-4zM6 14h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2a2 2 0 012-2z"/>
+            </svg>
+            <h3>Upload GPX file</h3>
+            <p>Drag & drop a GPX file here, or</p>
+            <button id="selectGpxBtn" type="button" class="btn">Select File</button>
+            <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml" hidden>
+            <div id="gpxStatus" class="dz-status" aria-live="polite"></div>
+          </div>
 
-        <!-- Activity preset -->
-        <label class="field">
-          <span>Activity</span>
-          <select id="activityType">
-            <option value="hike" selected>Hiking / trail</option>
-            <option value="mtb">Mountain biking</option>
-            <option value="road">Road cycling</option>
-          </select>
         </label>
-
-        <!-- Pace model -->
-        <label class="field">
-          <span>Flat speed (km/h)</span>
-          <input type="number" id="speedFlat" step="0.1" value="4" />
-        </label>
-
-        <label class="field">
-          <span>Vertical speed (m/h)</span>
-          <input type="number" id="speedVert" step="10" value="300" />
-        </label>
-
-        <label class="field break">
-          <span class="label label-row">
-            Downhill factor
-            <button type="button" class="help-tip" aria-label="Downhill factor info"
-              data-tip="Multiplicative factor for downhill segments. 0.66 means downhill takes two-thirds the time of flat/uphill for the same segment. Higher than 1.0 makes downhill slower (technical terrain).">i</button>
-          </span>
-          <input type="number" id="downhillFactor" step="0.01" value="0.6667" />
-        </label>
-        <div class="checkboxes">
-          <label class="checkbox">
-            <input type="checkbox" id="importRoadbooks" checked />
-            <span>Import roadbooks from GPX</span>
-          </label>
-          <!-- Advanced toggle -->
-          <label class="checkbox">
-            <input type="checkbox" id="showAdvanced" />
-            <span>Show advanced configuration</span>
-          </label>
+        <div class="actions">
+          <button id="calculateBtn" class="primary process">Process GPX</button>
         </div>
-        <!-- Advanced fields (hidden by default) -->
-        <div class="advanced-wrap">
+      </div>
+
+      <div class="card" id="settingsCard">
+        <h2>Settings</h2>
+        <div class="controls" id="controls">
+
+          <!-- Activity preset -->
+          <label class="field">
+            <span>Activity</span>
+            <select id="activityType">
+              <option value="hike" selected>Hiking / trail</option>
+              <option value="mtb">Mountain biking</option>
+              <option value="road">Road cycling</option>
+            </select>
+          </label>
+
+          <!-- Pace model -->
+          <label class="field">
+            <span>Flat speed (km/h)</span>
+            <input type="number" id="speedFlat" step="0.1" value="4" />
+          </label>
+
+          <label class="field">
+            <span>Vertical speed (m/h)</span>
+            <input type="number" id="speedVert" step="10" value="300" />
+          </label>
+
+          <label class="field break">
+            <span class="label label-row">
+              Downhill factor
+              <button type="button" class="help-tip" aria-label="Downhill factor info"
+                data-tip="Multiplicative factor for downhill segments. 0.66 means downhill takes two-thirds the time of flat/uphill for the same segment. Higher than 1.0 makes downhill slower (technical terrain).">i</button>
+            </span>
+            <input type="number" id="downhillFactor" step="0.01" value="0.6667" />
+          </label>
+          <!-- Advanced fields (hidden by default) -->
           <label class="field advanced">
             <span class="label label-row">
               Resample (m)
@@ -105,26 +113,30 @@
             </span>
             <input type="number" id="elevDeadbandM" step="1" value="2" />
           </label>     
+          <!-- Settings checkboxes -->
+          <div class="checkboxes">
+            <!-- Advanced toggle -->
+            <label class="checkbox">
+              <input type="checkbox" id="showAdvanced" />
+              <span>Show advanced configuration</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="importRoadbooks" checked />
+              <span>Import roadbooks from GPX</span>
+            </label>
+          </div>
         </div>
-      </div>
-
-      <div class="actions">
-        <button id="calculateBtn" class="primary">Process GPX</button>
-        <button id="clearRoadbooksBtn" disabled>Clear roadbooks</button>
-
-        <span class="spacer"></span>
-
-        <button id="savePlanBtn" disabled>Save</button>
-        <button id="loadPlanBtn">Load</button>
         <input type="file" id="loadPlanInput" accept=".json" hidden />
-        <button id="exportCsvBtn" disabled>Export CSV</button>
       </div>
     </section>
 
     <!-- Map + Summary -->
     <section class="grid">
       <div class="card is-hidden" id="mapCard">
-        <h2>Map</h2>
+        <div class="card-header">
+          <h2>Map</h2>
+          <button id="clearRoadbooksBtn" disabled>Clear roadbooks</button>
+        </div>
         <div id="map" class="map" role="img" aria-label="Route map"></div>
       </div>
 
@@ -136,7 +148,13 @@
 
     <!-- Roadbooks -->
     <section class="card is-hidden" id="roadbooksCard">
-      <h2>Planning</h2>
+      <div class="card-header">
+        <h2>Planning</h2>
+        <div class="planning-actions">
+          <button id="printBtn" disabled>Print</button>
+          <button id="exportCsvBtn" disabled>Export CSV</button>
+        </div>
+      </div>
       <div id="roadbooks" class="table-wrap"></div>
     </section>
   </main>

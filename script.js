@@ -164,6 +164,85 @@ function ensureMap() {
 }
 ensureMap();
 
+// ---------- GPX Drag & Drop Upload ----------
+(function setupGpxDropzone(){
+  const drop = document.getElementById('gpxDrop');
+  const fileInput = document.getElementById('gpxFile');
+  const selectBtn = document.getElementById('selectGpxBtn');
+  const statusEl = document.getElementById('gpxStatus');
+  const processBtn = document.getElementById('processBtn'); // <-- make sure your Process button has this id
+
+  if (!drop || !fileInput) return;
+
+  const on = (el, evts, fn) => evts.forEach(evt => el.addEventListener(evt, fn));
+
+  const highlight = (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); };
+  const unhighlight = (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); };
+
+  on(drop, ['dragenter','dragover'], highlight);
+  on(drop, ['dragleave','drop'],    unhighlight);
+
+  // --- NEW: status updaters
+  const kib = (n) => (n/1024).toFixed(1) + ' KB';
+  const setReady = (file) => {
+    drop.classList.remove('error');
+    drop.classList.add('uploaded');
+    if (statusEl) statusEl.innerHTML = `<span class="ok">Ready:</span> ${file.name} · ${kib(file.size)}`;
+    if (selectBtn) selectBtn.textContent = 'Change File';
+    if (processBtn) processBtn.disabled = false;  // enable processing
+  };
+  const setError = (msg) => {
+    drop.classList.remove('uploaded');
+    drop.classList.add('error');
+    if (statusEl) statusEl.innerHTML = `<span class="err">Error:</span> ${msg}`;
+    if (processBtn) processBtn.disabled = true;
+  };
+  const clearState = () => {
+    drop.classList.remove('uploaded','error');
+    if (statusEl) statusEl.textContent = '';
+    if (selectBtn) selectBtn.textContent = 'Select File';
+    // optionally disable process until file chosen again:
+    // if (processBtn) processBtn.disabled = true;
+  };
+
+  // Handle a dropped file -> feed into input + update UI
+  drop.addEventListener('drop', (e) => {
+    const files = Array.from(e.dataTransfer?.files || []);
+    const gpx = files.find(f => /\.gpx$/i.test(f.name) || f.type === 'application/gpx+xml');
+    if (!gpx) { setError('Please drop a .gpx file'); return; }
+    const dt = new DataTransfer();
+    dt.items.add(gpx);
+    fileInput.files = dt.files;
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  // Button / box click opens chooser
+  selectBtn?.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('click', (e) => {
+    if (!(e.target instanceof HTMLButtonElement)) fileInput.click();
+  });
+  drop.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+
+  // --- Whenever input changes, reflect UI state
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (!f) { clearState(); return; }
+    if (!/\.gpx$/i.test(f.name) && f.type !== 'application/gpx+xml') {
+      setError('Selected file is not a .gpx');
+      return;
+    }
+    setReady(f);
+  });
+
+  // Clear roadbooks UI reset
+  document.getElementById('clearRoadbooksBtn')?.addEventListener('click', clearState);
+})();
+
+
+
+
 // Advanced toggle: show/hide advanced fields
 if (showAdvChk) {
   showAdvChk.addEventListener('change', () => {
@@ -1345,7 +1424,6 @@ function updateSummaryCard() {
       <li><strong>Estimated Activity Time:</strong> ${fmtHrs(activityWithCondH)}</li>
       <li><strong>Estimated Total Time:</strong> ${fmtHrs(totalH)}</li>
     </ul>
-    <p class="subtle">Resample: ${spacingM} m • Smooth window: ${smoothWinM} m • Deadband: ${elevDeadbandM} m</p>
   `;
 }
 

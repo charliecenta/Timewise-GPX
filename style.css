@@ -34,6 +34,18 @@
   --tooltip-bg: #111;
   --tooltip-fg: #fff;
   --tooltip-border: rgba(0,0,0,0.2);
+
+  /* Dropzone tokens (light) */
+  --drop-border: #2a7de1;
+  --drop-bg: #ffffff;
+  --drop-text: #334155;
+  --drop-muted: #94a3b8;
+  --drop-hover-bg: #f8fafc;
+  --dragover-bg: #eef6ff;
+  --ok: #16a34a;
+  --ok-bg: #f0fdf4;
+  --err: #dc2626;
+  --err-bg: #fef2f2;
 }
 
 [data-theme="dark"] {
@@ -69,6 +81,19 @@
   --tooltip-bg: #000;
   --tooltip-fg: #fff;
   --tooltip-border: rgba(255,255,255,0.1);
+
+  /* Dropzone tokens (dark) */
+  --drop-border: #5393f2;
+  --drop-bg: #0b1220;         /* or use var(--card-bg) */
+  --drop-text: var(--fg);
+  --drop-muted: #94a3b8;
+  --drop-hover-bg: #151a26;
+  --dragover-bg: rgba(83,147,242,.14);
+  --ok: #22c55e;
+  --ok-bg: rgba(34,197,94,.10);
+  --err: #ef4444;
+  --err-bg: rgba(239,68,68,.10);
+
 }
 
 /* =========================================================
@@ -114,9 +139,70 @@ h1 { margin: 0; font-size: 20px; }
 }
 #themeToggle:hover { background: var(--btn-hover); }
 
-.brand { display:flex; align-items:center; text-decoration:none; }
-.brand-logo { display:block; height:50px; width:auto; }
-@media (max-width: 560px) { .brand-logo { height:26px; } }
+.brand { 
+  display:flex;
+  align-items:center; 
+  text-decoration:none; 
+}
+.brand-logo { 
+  display:block; 
+  height:50px; 
+  width:auto; 
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+[data-theme="dark"] .brand-logo {
+  content: url("assets/timewisegpx_logo_dark.svg");
+}
+@media (max-width: 560px) { 
+  .brand-logo { 
+    height:26px; 
+  } 
+}
+
+/* =========================================================
+    FILE UPLOAD
+   ========================================================= */
+.dropzone{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; text-align:center;
+  padding:28px; border:2px dashed var(--drop-border); border-radius:14px;
+  background: var(--drop-bg); color: var(--drop-text);
+  min-height:180px;
+  transition: background .15s ease, box-shadow .15s ease, border-color .15s;
+}
+.dropzone svg{ color: var(--drop-muted); }
+.dropzone h3{ margin:6px 0 0; font-size:18px; color: var(--text, var(--fg)); }
+.dropzone p{ margin:0; font-size:14px; color: var(--drop-muted); }
+.dropzone .btn{
+  appearance:none; border:1px solid var(--btn-border); background: var(--card-bg); color: var(--fg);
+  padding:8px 14px; border-radius:10px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.dropzone:hover{ background: var(--drop-hover-bg); }
+
+.dropzone.dragover{
+  border-color: var(--drop-border);
+  background: var(--dragover-bg);
+  box-shadow: 0 0 0 4px rgba(42,125,225,.12) inset; /* light fallback */
+}
+
+/* status line */
+.dz-status { margin-top: 6px; font-size: 13px; color: var(--drop-text); opacity:.85; }
+.dz-status .ok { color: var(--ok); font-weight: 600; }
+.dz-status .err { color: var(--err); font-weight: 600; }
+
+/* visual states for the drop box */
+.dropzone.uploaded{
+  border-color: var(--ok);
+  background: var(--ok-bg);
+  box-shadow: 0 0 0 4px rgba(22,163,74,.10) inset;
+}
+.dropzone.error{
+  border-color: var(--err);
+  background: var(--err-bg);
+  box-shadow: 0 0 0 4px rgba(220,38,38,.08) inset;
+}
+.dropzone.uploaded .btn{ border-color: var(--ok); }
 
 
 /* =========================================================
@@ -133,6 +219,12 @@ h1 { margin: 0; font-size: 20px; }
 .card h2 {
   margin: 0 0 10px;
   font-size: 16px;
+}
+.card-header {
+  display:flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
 /* =========================================================
@@ -274,6 +366,9 @@ button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+button.process {
+  width: 100%;
+}
 
 /* =========================================================
    MAP + GRID LAYOUT
@@ -383,7 +478,7 @@ button:disabled {
 
 
 /* =========================================================
-   TABLES
+   Planning
    ========================================================= */
 .table-wrap { overflow-x: auto; }
 table {
