@@ -598,28 +598,49 @@ tbody tr:hover { background: var(--table-row-hover); }
 /* =========================================================
    PRINT
    ========================================================= */
+/* ---- Print: only show Itinerary ---- */
 @media print {
   body {
     background: #fff;
     color: #000;
+    font-size: 11px;
+    line-height: 1.4;
   }
 
+  /* Hide everything except summary + table + print title */
   header,
   #settingsCard,
   #mapCard,
   .controls,
   .actions,
-  .map {
+  .map,
+  .socials,
+  #fileUploadCard,
+  #uploadCard,
+  #separator, 
+  button {
     display: none !important;
   }
 
+  /* Show the print-only heading */
+  .print-only {
+    display: block !important;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    margin-top: 6px;
+  }
+
+  /* Container */
   .wrap {
     max-width: none;
     width: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0 12px;
   }
 
+  /* Remove borders/shadows for a clean sheet */
   .card {
     box-shadow: none !important;
     border: none !important;
@@ -628,12 +649,13 @@ tbody tr:hover { background: var(--table-row-hover); }
     page-break-inside: avoid;
   }
 
+  /* Table styling */
   #roadbooks table {
     font-size: 11px;
     border: none;
     width: 100%;
-    background: #fff;
   }
+
   #roadbooks th,
   #roadbooks td {
     padding: 3px 5px;
@@ -642,15 +664,11 @@ tbody tr:hover { background: var(--table-row-hover); }
     white-space: normal;
     word-break: break-word;
     overflow-wrap: anywhere;
-    color: #000;
   }
-  #roadbooks td.obs-cell,
-  #roadbooks td.obs-cell .wb-obs {
-    max-width: 200px;
-    white-space: normal !important;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    text-align: left;
-    line-height: 1.2;
+
+  /* Hide cards that aren't summary or table */
+  .card:not(#summaryCard):not(#roadbooksCard) {
+    display: none !important;
   }
 }
+
