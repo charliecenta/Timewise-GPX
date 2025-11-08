@@ -572,7 +572,7 @@ button.process {
   background: linear-gradient(to right, rgba(255,255,255,0.10), transparent);
 }
 #roadbooks table {
-  min-width: 1000px; 
+  min-width: 1041px; 
 }
 table {
   width: 100%;
@@ -609,25 +609,13 @@ tbody tr:hover { background: var(--table-row-hover); }
 /* --- Observations column wrapping --- */
 #roadbooks td.obs-cell,
 #roadbooks td.obs-cell .wb-obs {
-  max-width: 200px;        
+  max-width: 140px;        
   white-space: normal;    
   word-break: break-word;  
   overflow-wrap: anywhere;  
   vertical-align: top;     
   text-align: left;       
   line-height: 1.3;
-}
-
-/* Editable cells */
-.leg-cell .leg-name,
-.editable {
-  border-bottom: 1px dashed var(--table-border);
-  cursor: text;
-}
-.leg-cell .leg-name:focus,
-.editable:focus {
-  outline: 2px solid var(--accent);
-  border-bottom-color: transparent;
 }
 
 /* Smaller, cleaner table text */
@@ -637,11 +625,11 @@ tbody tr:hover { background: var(--table-row-hover); }
 
 #roadbooks th,
 #roadbooks td {
-  max-width: 160px;
+  max-width: 150px;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: anywhere;
-  position: static;
+  position: relative;
   left: auto;
   z-index: auto;
 }
@@ -673,6 +661,71 @@ tbody tr:hover { background: var(--table-row-hover); }
   max-width: 44px;
   text-align: center;
 }
+
+/* --- Editable text (spans) --- */
+.leg-cell .leg-name,
+.wb-stops,
+.wb-cond,
+.wb-obs {
+  border-bottom: 1px dashed var(--table-border);
+}
+.leg-cell .leg-name:focus,
+.wb-stops:focus,
+.wb-cond:focus,
+.wb-obs:focus {
+  outline: 2px solid var(--accent);
+  border-bottom-color: transparent;
+}
+
+/* Pencil icon on editable table cells */
+#roadbooks td.editable-cell {
+  position: relative;
+  padding-right: 22px; /* room for icon */
+  overflow: visible;
+  cursor: pointer;
+}
+#roadbooks td.editable-cell::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  background: no-repeat center / contain url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%2399a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>');
+  font-size: 0.8em;
+  opacity: 0;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease;
+  pointer-events: none; /* don’t block clicks */
+}
+#roadbooks td.editable-cell:hover::after,
+#roadbooks td.editable-cell:focus-within::after {
+  opacity: 0.6;
+}
+
+/* Optional: subtle hover feedback */
+#roadbooks td.editable-cell:hover {
+  background-color: var(--hover-bg, rgba(0,0,0,0.05));
+}
+
+/* Critical column styling */
+td.critical-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+td.critical-cell.critical-on {
+  background: var(--critical-bg, #ffe9e9);
+}
+td.critical-cell .crit-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+}
+[data-theme="dark"] td.critical-cell.critical-on {
+  background: rgba(255, 120, 120, 0.18);
+}
+
 
 /* =========================================================
    PRINT
@@ -722,29 +775,80 @@ tbody tr:hover { background: var(--table-row-hover); }
   /* Remove borders/shadows for a clean sheet */
   .card {
     box-shadow: none !important;
-    border: none !important;
     margin: 0 0 10px 0;
     padding: 8px;
     page-break-inside: avoid;
+    border: none !important;
+
   }
 
   /* Table styling */
+
   #roadbooks table {
+    width: 100%;
     font-size: 9px;
     border: none;
-    width: 100%;
   }
-
-  #roadbooks th,
-  #roadbooks td {
-    padding: 3px 5px;
-    border: none;
+  #roadbooks th, #roadbooks td {
+    padding: 6px 6px !important;
     max-width: 100px;
+    text-align: center;
     white-space: normal;
     word-break: break-word;
     overflow-wrap: anywhere;
   }
+  #roadbooks td, #roadbooks tbody td.col-index {
+    background: none;
+    border-right: none;
+    border-bottom: 1px solid #efeff6;
+  }
 
+  #roadbooks th:first-child,
+  #roadbooks td:first-child {
+    text-align: center;
+  }
+
+  #roadbooks th:nth-child(2),
+  #roadbooks td:nth-child(2) {
+    text-align: left;
+  }
+
+  #roadbooks thead th {
+    border-right: none;
+    border-bottom: 2px solid #cdcdcd;
+    font-weight: 600;
+  }
+  .leg-cell .leg-name, .wb-stops, .wb-cond, .wb-obs {
+      border-bottom: none;
+  }
+  .critical-cell {
+    position: relative;
+  }
+  .critical-cell.critical-on {
+    background: #ffdddd !important;
+    border-color: #fbb;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .critical-cell input[type="checkbox"] {
+    display: none !important;
+  }
+  .critical-cell.critical-on::after {
+    content: "Yes";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #a00;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+  }
+  #roadbooks td.obs-cell,
+  #roadbooks td.obs-cell .wb-obs {
+    max-width: 100px;        
+  }
   /* Hide cards that aren't summary or table */
   .card:not(#summaryCard):not(#roadbooksCard) {
     display: none !important;

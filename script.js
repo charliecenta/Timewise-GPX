@@ -599,7 +599,7 @@ function renderRoadbooksTable() {
           <th rowspan="2">Name</th>
           <th rowspan="2">Critical</th>
           <th colspan="3">Leg</th>
-          <th colspan="3">Accumulated</th>
+          <th colspan="3">Accumulated (Σ)</th>
           <th colspan="6">Time</th>
           <th rowspan="2">Observations</th>
         </tr>
@@ -623,22 +623,24 @@ function renderRoadbooksTable() {
     const autoLabel    = getDefaultLegLabel(L.a, L.b);
     const displayLabel = legLabels.get(L.key) || autoLabel;
     const remainingH   = totalAdjustedH - cumTimeAdjH;
-    const isCritical   = legCritical.get(L.key) ?? false;
+    const isCritical = legCritical.get(L.key) ?? false;
     const obsText      = legObservations.get(L.key) ?? "";
 
     html += `
       <tr>
         <td class="col-index">${L.idx}</td>
-        <td class="leg-cell">
+        <td class="leg-cell editable-cell">
           <span class="leg-name" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
                 title="Double-click to edit">${escapeHtml(displayLabel)}</span>
         </td>
-
-        <td>
-          <select class="wb-critical" data-legkey="${L.key}">
-            <option value="No"${isCritical ? "" : " selected"}>No</option>
-            <option value="Yes"${isCritical ? " selected" : ""}>Yes</option>
-          </select>
+        
+        <td class="critical-cell ${isCritical ? 'critical-on' : ''}">
+          <label class="crit-wrap" title="Mark leg as critical">
+            <input type="checkbox"
+                  class="wb-critical"
+                  data-legkey="${L.key}"
+                  ${isCritical ? 'checked' : ''} />
+          </label>
         </td>
 
         <td>${fmtKm(L.distKm)}</td>
@@ -650,20 +652,20 @@ function renderRoadbooksTable() {
         <td>${Math.round(cumDesMShown)} m</td>
 
         <td>${fmtHrs(L.baseH)}</td>
-        <td>
-          <span class="editable wb-stops" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
+        <td class="editable-cell">
+          <span class="wb-stops" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
                 title="Integer minutes">${escapeHtml(minutesToText(L.stopsMin))}</span>
         </td>
-        <td>
-          <span class="editable wb-cond" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
+        <td class="editable-cell">
+          <span class="wb-cond" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
                 title="Integer percent">${escapeHtml(percentToText(L.condPct))}</span>
         </td>
         <td>${fmtHrs(L.totalH)}</td>
         <td>${fmtHrs(cumTimeAdjH)}</td>
         <td>${fmtHrs(remainingH)}</td>
 
-        <td class="obs-cell">
-          <span class="editable wb-obs" contenteditable="true" data-legkey="${L.key}" spellcheck="true"
+        <td class="obs-cell editable-cell">
+          <span class="wb-obs" contenteditable="true" data-legkey="${L.key}" spellcheck="true"
                 title="Add notes or comments">${escapeHtml(obsText)}</span>
         </td>
       </tr>
@@ -745,15 +747,19 @@ function bindTimeEditors() {
 }
 
 function bindCriticalEditors() {
-  roadbooksEl.querySelectorAll('.wb-critical').forEach(sel => {
-    sel.addEventListener('change', () => {
-      const key = sel.dataset.legkey;
-      const yes = (sel.value === 'Yes');
-      if (yes) legCritical.set(key, true);
-      else legCritical.set(key, false);
+  roadbooksEl.querySelectorAll('.wb-critical').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const key = cb.getAttribute('data-legkey');
+      const checked = cb.checked;
+
+      legCritical.set(key, checked);
+
+      const cell = cb.closest('td');
+      if (cell) cell.classList.toggle('critical-on', checked);
     });
   });
 }
+
 
 function bindObservationEditors() {
   const nodes = roadbooksEl.querySelectorAll('.wb-obs');
@@ -1585,7 +1591,6 @@ function nearestIndexOnTrack([la, lo], latlngs) {
     root.setAttribute('data-theme', next);
     localStorage.setItem(key, next);
 
-    // ✅ Keep topo map light even in dark mode
     if (tileLayer && map) {
       tileLayer.setUrl('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
     }
