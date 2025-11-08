@@ -170,7 +170,13 @@
           <button id="exportCsvBtn" disabled>Export CSV</button>
         </div>
       </div>
-      <div id="roadbooks" class="table-wrap"></div>
+      <div class="table-outer">
+        <div class="table-wrap" id="roadbooksTableWrap">
+          <div id="roadbooks"><!-- JS inserts the table here --></div>
+        </div>
+        <div class="table-fade table-fade-right" aria-hidden="true"></div>
+        <div class="table-fade table-fade-left"  aria-hidden="true"></div>
+      </div>
     </section>
   </main>
 

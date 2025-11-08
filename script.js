@@ -404,6 +404,10 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   setTimeout(() => { printBtn.disabled = false; }, 0);
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  wireTableFades();
+});
+
 
 // ---------- Main flow ----------
 // ---------- Main flow ----------
@@ -591,7 +595,7 @@ function renderRoadbooksTable() {
     <table>
       <thead>
         <tr>
-          <th rowspan="2">#</th>
+          <th class="col-index" rowspan="2">#</th>
           <th rowspan="2">Name</th>
           <th rowspan="2">Critical</th>
           <th colspan="3">Leg</th>
@@ -624,7 +628,7 @@ function renderRoadbooksTable() {
 
     html += `
       <tr>
-        <td>${L.idx}</td>
+        <td class="col-index">${L.idx}</td>
         <td class="leg-cell">
           <span class="leg-name" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
                 title="Double-click to edit">${escapeHtml(displayLabel)}</span>
@@ -668,6 +672,10 @@ function renderRoadbooksTable() {
 
   html += `</tbody></table>`;
   roadbooksEl.innerHTML = html;
+
+  const wrap = document.getElementById('roadbooksTableWrap');
+  if (wrap) wrap.dispatchEvent(new Event('scroll')); // triggers fade update
+
 
   bindLegEditors();
   bindTimeEditors();
@@ -1298,6 +1306,43 @@ function computeTimeRollups() {
     totalH: activityWithCondH + stopsH
   };
 }
+
+// --- Table fade shadows for horizontal scroll UX ---
+function wireTableFades(){
+  const outer = document.querySelector('.table-outer');
+  const wrap  = document.getElementById('roadbooksTableWrap');
+  if (!outer || !wrap) return;
+
+  const fadeL = outer.querySelector('.table-fade-left');
+  const fadeR = outer.querySelector('.table-fade-right');
+
+  function updateFades(){
+    const max = Math.max(0, wrap.scrollWidth - wrap.clientWidth);
+    const x   = wrap.scrollLeft;
+
+    // Use rounding tolerance so fractional layouts don’t leave the fade visible
+    const atStart = x <= 1;                   // 0 or ~0
+    const atEnd   = x >= max - 1;             // within 1px of the end
+
+    if (fadeL) fadeL.style.opacity = atStart ? 0 : 1;
+    if (fadeR) fadeR.style.opacity = (max <= 1 || atEnd) ? 0 : 1;
+  }
+
+  wrap.addEventListener('scroll', updateFades, { passive: true });
+  window.addEventListener('resize', updateFades);
+
+  // Recompute fades whenever the table is re-rendered
+  const ro = new ResizeObserver(updateFades);
+  ro.observe(wrap);
+
+  // Also observe the table contents changing (when you rewrite innerHTML)
+  const mo = new MutationObserver(updateFades);
+  mo.observe(document.getElementById('roadbooks'), { childList: true, subtree: true });
+
+  // Initial
+  requestAnimationFrame(updateFades);
+};
+
 
 // --- Waypoint label helpers ---
 function getWaypointName(idx) {

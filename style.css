@@ -418,6 +418,10 @@ button.process {
   width: 100%;
 }
 
+/* Advanced fields start hidden unless .show-adv */
+#settingsCard .advanced { display: none; }
+#settingsCard.show-adv .advanced { display: grid; }
+
 /* =========================================================
    MAP + GRID LAYOUT
    ========================================================= */
@@ -526,9 +530,50 @@ button.process {
 
 
 /* =========================================================
-   Planning
+   ITINERARY
    ========================================================= */
-.table-wrap { overflow-x: auto; }
+.table-outer {
+  position: relative;
+}
+.table-outer::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--table-border);
+  z-index: 10; /* above everything so the gap is always covered */
+}
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-fade {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 18px;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .15s ease;
+  z-index: 8; /* above table cells; below sticky col shadow if any */
+}
+.table-fade-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(0,0,0,0.10), transparent);
+}
+.table-fade-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.08), transparent);
+}
+[data-theme="dark"] .table-fade-right {
+  background: linear-gradient(to left, rgba(255,255,255,0.12), transparent);
+}
+[data-theme="dark"] .table-fade-left {
+  background: linear-gradient(to right, rgba(255,255,255,0.10), transparent);
+}
+#roadbooks table {
+  min-width: 1000px; 
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -555,6 +600,11 @@ th:nth-child(2), td:nth-child(2) { text-align: left; }
 tbody tr:nth-child(odd) { background: var(--table-row-odd); }
 tbody tr:nth-child(even) { background: var(--table-row-even); }
 tbody tr:hover { background: var(--table-row-hover); }
+
+@media (max-width: 600px) {
+  #roadbooks table { font-size: 12px; }
+  #roadbooks th, #roadbooks td { padding: 6px 8px; }
+}
 
 /* --- Observations column wrapping --- */
 #roadbooks td.obs-cell,
@@ -585,18 +635,44 @@ tbody tr:hover { background: var(--table-row-hover); }
 #roadbooks th,
 #roadbooks td { padding: 6px 8px; }
 
-/* Limit wide columns and allow wrapping */
 #roadbooks th,
 #roadbooks td {
-  max-width: 200px;
+  max-width: 160px;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: anywhere;
+  position: static;
+  left: auto;
+  z-index: auto;
 }
 
-/* Advanced fields start hidden unless .show-adv */
-#settingsCard .advanced { display: none; }
-#settingsCard.show-adv .advanced { display: grid; }
+
+/* Only cells explicitly marked .col-index are sticky */
+#roadbooks th.col-index,
+#roadbooks td.col-index {
+  position: sticky;
+  left: 0;
+  z-index: 9; /* above fades */
+  /* background per section so sticky doesn't show row alt colors through */
+}
+
+/* Header cell appearance for the sticky index */
+#roadbooks thead th.col-index {
+  background: var(--table-head-bg);
+  box-shadow: 4px 0 6px -4px rgba(0,0,0,.15);
+  min-width: 36px;
+  max-width: 44px;
+  text-align: center;
+}
+
+/* Body cells for the sticky index */
+#roadbooks tbody td.col-index {
+  background: var(--table-bg);
+  box-shadow: 4px 0 6px -4px rgba(0,0,0,.15);
+  min-width: 36px;
+  max-width: 44px;
+  text-align: center;
+}
 
 /* =========================================================
    PRINT
@@ -654,7 +730,7 @@ tbody tr:hover { background: var(--table-row-hover); }
 
   /* Table styling */
   #roadbooks table {
-    font-size: 11px;
+    font-size: 9px;
     border: none;
     width: 100%;
   }
@@ -663,7 +739,7 @@ tbody tr:hover { background: var(--table-row-hover); }
   #roadbooks td {
     padding: 3px 5px;
     border: none;
-    max-width: 200px;
+    max-width: 100px;
     white-space: normal;
     word-break: break-word;
     overflow-wrap: anywhere;
