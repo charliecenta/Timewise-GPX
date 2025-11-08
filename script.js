@@ -631,7 +631,7 @@ function renderRoadbooksTable() {
         <td class="col-index">${L.idx}</td>
         <td class="leg-cell editable-cell">
           <span class="leg-name" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
-                title="Double-click to edit">${escapeHtml(displayLabel)}</span>
+                title="Click to edit name">${escapeHtml(displayLabel)}</span>
         </td>
         
         <td class="critical-cell ${isCritical ? 'critical-on' : ''}">
