@@ -1,4 +1,4 @@
-// Route Time Estimator — Clean V2 (Print=Table only; no map image in PDF)
+// // Route Time Estimator — Clean V2 (Print=Table only; no map image in PDF)
 // - Live Leaflet map for planning (not printed)
 // - GPX processing: resample, smooth, deadband filter, per-step time model
 // - Waypoints/roadbooks import + on-map add/remove
