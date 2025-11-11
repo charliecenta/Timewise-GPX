@@ -152,6 +152,9 @@ body {
   margin: 0 auto;
   color: var(--top-bar-text);
 }
+.top-bar-content .author {
+  margin-right: auto;
+}
 .top-bar-content a {
   color: var(--top-bar-text);
 }
@@ -174,6 +177,47 @@ header {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.language-switcher {
+  display: flex;
+  align-items: center;
+}
+.language-select {
+  appearance: none;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--fg);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease;
+}
+.language-select:hover {
+  background: var(--btn-hover);
+}
+.language-select:focus-visible {
+  background: var(--btn-hover);
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 h1 { margin: 0; font-size: 20px; }
 #themeToggle {
