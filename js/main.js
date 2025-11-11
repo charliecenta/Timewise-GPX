@@ -3,10 +3,11 @@
 import { setupThemeToggle, setupAdvancedToggle, setupGpxDropzone, showMainSections } from './ui.js';
 import { bindIoAPI, readFileAsText, wireSaveLoadExport, restorePlanFromJSON } from './io.js';
 import { bindTableAPI, renderRoadbooksTable, updateSummaryCard, wireTableFades, exportRoadbooksCsv } from './table.js';
-import { bindMapAPI, ensureMap, drawPolyline, clearMarkers, addRoadbookIndex, refreshTiles, invalidateMapSize, refitToTrack } from './map.js';
+import { bindMapAPI, ensureMap, drawPolyline, clearMarkers, addRoadbookIndex, refreshTiles, invalidateMapSize, refitToTrack, ensureLabelPopup, getMarkers } from './map.js';
 import { parseGPXToSegments, parseGPXRoadbooks } from './gpx.js';
 import { buildTrackFromSegments, nearestIndexOnTrack } from './track.js';
 import { toPosNum, toNonNegNum, escapeHtml } from './utils.js';
+import { initI18n, addLanguageChangeListener, t } from './i18n.js';
 
 //
 // ---------- DOM ----------
@@ -21,6 +22,9 @@ const exportCsvBtn  = document.getElementById('exportCsvBtn');
 const printBtn      = document.getElementById('printBtn');
 const activitySel   = document.getElementById('activityType');
 const showAdvChk    = document.getElementById('showAdvanced');
+const languageSelect = document.getElementById('languageSelector');
+
+initI18n({ selectorEl: languageSelect });
 
 //
 // ---------- App state (single source of truth) ----------
@@ -124,8 +128,8 @@ wireSaveLoadExport();
 // ---------- Boot UI bits ----------
 setupThemeToggle({
   toggleBtn: document.getElementById('themeToggle'),
-  logoEl: document.getElementById('brandLogo'),
-  lightLogoSrc: 'assets/timewisegpx_logo_light.svg',
+  logoEl: document.getElementById('appLogo'),
+  lightLogoSrc: 'assets/timewisegpx_logo.svg',
   darkLogoSrc: 'assets/timewisegpx_logo_dark.svg'
 });
 setupAdvancedToggle({ checkbox: showAdvChk, settingsCard: document.getElementById('settingsCard') });
@@ -138,12 +142,27 @@ setupGpxDropzone({
   clearBtn: document.getElementById('clearRoadbooksBtn')
 });
 
+addLanguageChangeListener(() => {
+  if (trackLatLngs.length > 0) {
+    if (roadbookIdx.includes(0)) {
+      roadbookLabels.set(0, t('map.start'));
+    }
+    const lastIdx = trackLatLngs.length - 1;
+    if (roadbookIdx.includes(lastIdx)) {
+      roadbookLabels.set(lastIdx, t('map.finish'));
+    }
+    getMarkers().forEach(marker => ensureLabelPopup(marker));
+  }
+  renderRoadbooksTable();
+  updateSummaryCard();
+});
+
 //
 // ---------- Process / Clear buttons ----------
 if (calcBtn) {
   calcBtn.addEventListener('click', async () => {
     const fileInput = document.getElementById('gpxFile');
-    if (!fileInput?.files?.length) { alert('Please upload a GPX file.'); return; }
+    if (!fileInput?.files?.length) { alert(t('gpx.errors.noFile')); return; }
     const file = fileInput.files[0];
     lastGpxName = file.name.replace(/\.[^/.]+$/, '');
 
@@ -172,8 +191,8 @@ if (clearBtn) {
     legObservations.clear();
 
     // re-add start/finish
-    addRoadbookIndex(0, { noRender: true, label: 'Start',  locked: true });
-    addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: 'Finish', locked: true });
+    addRoadbookIndex(0, { noRender: true, label: t('map.start'),  locked: true });
+    addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: t('map.finish'), locked: true });
     renderRoadbooksTable();
   });
 }
@@ -190,7 +209,7 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   const downhillFactor = toPosNum(document.getElementById('downhillFactor')?.value, 0.6667);
 
   const segments = parseGPXToSegments(gpxText);
-  if (!segments.length) { alert('No track segments found in GPX.'); return; }
+  if (!segments.length) { alert(t('gpx.errors.noSegments')); return; }
 
   // build track + cumulatives
   const built = buildTrackFromSegments(segments, {
@@ -227,8 +246,8 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   }
 
   // always ensure start/finish
-  addRoadbookIndex(0, { noRender: true, label: 'Start', locked: true });
-  addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: 'Finish', locked: true });
+  addRoadbookIndex(0, { noRender: true, label: t('map.start'), locked: true });
+  addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: t('map.finish'), locked: true });
 
   renderRoadbooksTable();
   updateSummaryCard();
