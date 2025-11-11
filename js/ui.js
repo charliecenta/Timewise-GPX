@@ -2,6 +2,8 @@
 // UI-only behaviours: theme toggle, advanced toggle, GPX dropzone status,
 // printing, and section visibility helpers. No business logic here.
 
+import { t, onLanguageChange } from './i18n.js';
+
 export function setupThemeToggle(opts = {}) {
   const { toggleBtn, logoEl, lightLogoSrc, darkLogoSrc, storageKey = 'gpxplanner-theme' } = opts;
   const root = document.documentElement;
@@ -59,25 +61,45 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
 
   const kib = (n) => (n/1024).toFixed(1) + ' KB';
 
+  let statusState = { kind: 'idle' };
+
+  const renderStatus = () => {
+    if (selectBtn) {
+      const key = statusState.kind === 'ready' ? 'buttons.changeFile' : 'buttons.selectFile';
+      selectBtn.textContent = t(key);
+    }
+    if (!statusEl) return;
+    if (statusState.kind === 'ready') {
+      const size = kib(statusState.size || 0);
+      statusEl.innerHTML = `<span class="ok">${t('dropzone.readyPrefix')}</span> ${t('dropzone.readyStatus', { name: statusState.name || '', size })}`;
+    } else if (statusState.kind === 'error') {
+      const message = t(statusState.key, statusState.params);
+      statusEl.innerHTML = `<span class="err">${t('dropzone.errorPrefix')}</span> ${message}`;
+    } else {
+      statusEl.textContent = '';
+    }
+  };
+
   const setReady = (file) => {
     dropEl.classList.remove('error');
     dropEl.classList.add('uploaded');
-    if (statusEl) statusEl.innerHTML = `<span class="ok">Ready:</span> ${file.name} · ${kib(file.size)}`;
-    if (selectBtn) selectBtn.textContent = 'Change File';
+    statusState = { kind: 'ready', name: file.name, size: file.size };
     if (processBtn) processBtn.disabled = false;
+    renderStatus();
   };
 
-  const setError = (msg) => {
+  const setError = (key, params = {}) => {
     dropEl.classList.remove('uploaded');
     dropEl.classList.add('error');
-    if (statusEl) statusEl.innerHTML = `<span class="err">Error:</span> ${msg}`;
+    statusState = { kind: 'error', key, params };
     if (processBtn) processBtn.disabled = true;
+    renderStatus();
   };
 
   const clearState = () => {
     dropEl.classList.remove('uploaded','error');
-    if (statusEl) statusEl.textContent = '';
-    if (selectBtn) selectBtn.textContent = 'Select File';
+    statusState = { kind: 'idle' };
+    renderStatus();
     // if you want to disable Process until next selection, uncomment:
     // if (processBtn) processBtn.disabled = true;
   };
@@ -86,7 +108,7 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
   dropEl.addEventListener('drop', (e) => {
     const files = Array.from(e.dataTransfer?.files || []);
     const gpx = files.find(f => /\.gpx$/i.test(f.name) || f.type === 'application/gpx+xml');
-    if (!gpx) { setError('Please drop a .gpx file'); return; }
+    if (!gpx) { setError('alerts.dropInvalid'); return; }
     const dt = new DataTransfer();
     dt.items.add(gpx);
     fileInput.files = dt.files;
@@ -107,13 +129,16 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
     const f = fileInput.files?.[0];
     if (!f) { clearState(); return; }
     if (!/\.gpx$/i.test(f.name) && f.type !== 'application/gpx+xml') {
-      setError('Selected file is not a .gpx');
+      setError('alerts.selectedInvalid');
       return;
     }
     setReady(f);
   });
 
   clearBtn?.addEventListener('click', clearState);
+
+  onLanguageChange(renderStatus);
+  renderStatus();
 }
 
 /** Toggle the visibility of the main sections (map, summary, table). */

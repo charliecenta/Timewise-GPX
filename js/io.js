@@ -2,6 +2,8 @@
 // Centralised I/O: read files, Save JSON, Load JSON, Export CSV, and UI wiring.
 // This module is UI-agnostic and talks to the app via bindIoAPI().
 
+import { t } from './i18n.js';
+
 const API = {
   // DOM
   saveBtn: null,
@@ -42,6 +44,7 @@ const API = {
 
   // Helpers
   nearestIndexOnTrack: (_latlng, _track) => 0, // not used here but left for symmetry
+  normaliseLockedLabels: () => false,
 };
 
 export function bindIoAPI(bindings) {
@@ -163,7 +166,7 @@ export async function restorePlanFromJSON(plan) {
 
   if (!track.length) {
     if (!plan.gpxText) {
-      alert("This saved plan has no embedded GPX. Please process a GPX first, then load the plan.");
+      alert(t('alerts.planNoEmbeddedGpx'));
       return;
     }
     // Apply saved settings to DOM BEFORE processing GPX
@@ -177,7 +180,7 @@ export async function restorePlanFromJSON(plan) {
     setIf("elevDeadbandM",  s.elevDeadbandM);
 
     // Rebuild track (do NOT import GPX waypoints—plan will add them)
-    await API.processGpxText(plan.gpxText, /* importRoadbooks */ false);
+      await API.processGpxText(plan.gpxText, /* importRoadbooks */ false);
 
     // Also store GPX in the app state for subsequent saves
     API.setLastGpxText(plan.gpxText || "");
@@ -217,8 +220,8 @@ export async function restorePlanFromJSON(plan) {
     API.addRoadbookIndex(i, { noRender: true, label: savedLabels.get(i), locked });
   }
 
+  API.normaliseLockedLabels?.();
   API.renderRoadbooksTable();
-  API.updateSummaryCard();
   API.showMainSections(true);
 
   if (API.saveBtn)   API.saveBtn.disabled   = false;
@@ -248,7 +251,7 @@ async function onLoadChange(e) {
     // If user selects a GPX file here by mistake, import it as GPX
     if (/^</.test(trimmed)) {
       await API.processGpxText(trimmed, /* importRoadbooks */ true);
-      alert("Loaded a GPX file. (Tip: use Save to export a resumable plan JSON.)");
+      alert(t('alerts.planLoadedGpx'));
       return;
     }
 
@@ -258,19 +261,19 @@ async function onLoadChange(e) {
       plan = safeParseJSON(text);
     } catch (parseErr) {
       console.error('JSON parse failed:', parseErr);
-      alert("Could not parse the plan JSON. Make sure you selected a file saved by this app.");
+      alert(t('alerts.parseFailed'));
       return;
     }
 
     if (!plan.gpxText && API.getTrackLatLngs().length === 0) {
-      alert("This saved plan doesn’t contain embedded GPX. Process the original GPX once, then load the plan again.");
+      alert(t('alerts.planMissingGpx'));
       return;
     }
 
     await restorePlanFromJSON(plan);
   } catch (err) {
     console.error('Load failed:', err);
-    alert(`Could not load the file.\n\n${err?.message ?? ''}`);
+    alert(t('alerts.loadFailed', { message: err?.message ?? '' }));
   } finally {
     if (API.loadInput) API.loadInput.value = "";
   }
@@ -278,7 +281,7 @@ async function onLoadChange(e) {
 
 function onExportCsv() {
   const csv = API.exportRoadbooksCsv?.();
-  if (!csv) { alert('No table to export.'); return; }
+  if (!csv) { alert(t('alerts.noTable')); return; }
   downloadFile('roadbooks_table.csv', 'text/csv;charset=utf-8', csv);
 }
 

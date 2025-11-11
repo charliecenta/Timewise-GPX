@@ -1,6 +1,8 @@
 // js/map.js
 // Leaflet map + markers + labels (no printing). Self-contained and wired by bindMapAPI().
 
+import { t } from './i18n.js';
+
 let map, tileLayer, polyline;
 let lastFitPadding = [20, 20];
 let markers = [];
@@ -143,8 +145,8 @@ export function addRoadbookIndex(i, opts = {}) {
 
   const initial = (label && String(label).trim()) ||
                   labels.get(i) ||
-                  (i === 0 ? "Start" :
-                   i === track.length - 1 ? "Finish" :
+                  (i === 0 ? t('labels.start') :
+                   i === track.length - 1 ? t('labels.finish') :
                    `WP ${arr.indexOf(i) + 1}`);
 
   labels.set(i, initial);
@@ -237,7 +239,7 @@ export function removeLabelPopup(marker) {
 /** Delete a waypoint (with confirmation handled here). */
 export function deleteWaypoint(marker, confirmed = false) {
   if (marker.__locked) return;
-  if (!confirmed && !API.confirmDelete('Are you sure you want to remove this waypoint?')) return;
+  if (!confirmed && !API.confirmDelete(t('map.confirmRemoveWaypoint'))) return;
 
   const arr = API.roadbookIdx;
   const labels = API.roadbookLabels;
@@ -261,13 +263,13 @@ export function openNameEditor(marker) {
 
   const html = `
     <div class="wb-edit-wrap" style="min-width:200px">
-      <label style="display:block;font-size:12px;margin:0 0 6px;">Waypoint name</label>
+      <label style="display:block;font-size:12px;margin:0 0 6px;">${API.escapeHtml(t('map.editorLabel'))}</label>
       <input id="wb-edit-input" type="text" value="${API.escapeHtml(current)}"
              style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;" />
       <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
-        <button id="wb-edit-save"   style="all:unset;background:#2a7de1;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer">Save</button>
-        <button id="wb-edit-cancel" style="all:unset;background:#eee;color:#333;border-radius:6px;padding:6px 10px;cursor:pointer">Cancel</button>
-        <button id="wb-edit-delete" style="all:unset;background:#e5484d;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer">Delete</button>
+        <button id="wb-edit-save"   style="all:unset;background:#2a7de1;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer">${API.escapeHtml(t('map.editorSave'))}</button>
+        <button id="wb-edit-cancel" style="all:unset;background:#eee;color:#333;border-radius:6px;padding:6px 10px;cursor:pointer">${API.escapeHtml(t('map.editorCancel'))}</button>
+        <button id="wb-edit-delete" style="all:unset;background:#e5484d;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer">${API.escapeHtml(t('map.editorDelete'))}</button>
       </div>
     </div>
   `;
@@ -298,7 +300,7 @@ export function openNameEditor(marker) {
     root?.querySelector('#wb-edit-cancel')?.addEventListener('click', (e) => { e.preventDefault(); cancel(); });
     root?.querySelector('#wb-edit-delete')?.addEventListener('click', (e) => {
       e.preventDefault();
-      if (API.confirmDelete('Are you sure you want to remove this waypoint?')) {
+      if (API.confirmDelete(t('map.confirmRemoveWaypoint'))) {
         deleteWaypoint(marker, true);
         map.closePopup(editor);
       }
