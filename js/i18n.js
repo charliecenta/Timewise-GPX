@@ -86,7 +86,6 @@ const translations = {
     table: {
       headers: {
         index: '#',
-        name: 'Name',
         critical: 'Critical',
         leg: 'Leg',
         accumulated: 'Accumulated (Σ)',
@@ -207,7 +206,6 @@ const translations = {
     table: {
       headers: {
         index: '#',
-        name: 'Nombre',
         critical: 'Crítico',
         leg: 'Tramo',
         accumulated: 'Acumulado (Σ)',
@@ -328,7 +326,6 @@ const translations = {
     table: {
       headers: {
         index: '#',
-        name: 'Nom',
         critical: 'Crític',
         leg: 'Tram',
         accumulated: 'Acumulat (Σ)',

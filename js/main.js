@@ -129,7 +129,7 @@ wireSaveLoadExport();
 setupThemeToggle({
   toggleBtn: document.getElementById('themeToggle'),
   logoEl: document.getElementById('appLogo'),
-  lightLogoSrc: 'assets/timewisegpx_logo_light.svg',
+  lightLogoSrc: 'assets/timewisegpx_logo.svg',
   darkLogoSrc: 'assets/timewisegpx_logo_dark.svg'
 });
 setupAdvancedToggle({ checkbox: showAdvChk, settingsCard: document.getElementById('settingsCard') });
@@ -144,13 +144,6 @@ setupGpxDropzone({
 
 addLanguageChangeListener(() => {
   if (trackLatLngs.length > 0) {
-    if (roadbookIdx.includes(0)) {
-      roadbookLabels.set(0, t('map.start'));
-    }
-    const lastIdx = trackLatLngs.length - 1;
-    if (roadbookIdx.includes(lastIdx)) {
-      roadbookLabels.set(lastIdx, t('map.finish'));
-    }
     getMarkers().forEach(marker => ensureLabelPopup(marker));
   }
   renderRoadbooksTable();

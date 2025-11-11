@@ -170,17 +170,35 @@ body {
   height: 1.5rem;
 }
 .language-switcher {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  position: relative;
 }
+
 .language-switcher select {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 6px;
+  appearance: none;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 8px;
   color: var(--fg);
-  padding: 2px 8px;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.2;
+  padding: 8px 32px 8px 12px;
+  transition: background .2s ease, border-color .2s ease;
+}
+
+.language-switcher select:hover {
+  background: var(--btn-hover);
+}
+
+.language-switcher::after {
+  content: '▾';
+  color: var(--muted);
+  font-size: 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 /* =========================================================
    HEADER
@@ -192,6 +210,24 @@ header {
   gap: 12px;
 }
 h1 { margin: 0; font-size: 20px; }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
 #themeToggle {
   background: var(--card-bg);
   border: 1px solid var(--card-border);

@@ -89,7 +89,7 @@ export function renderRoadbooksTable() {
       <thead>
         <tr>
           <th class="col-index" rowspan="2">${t('table.headers.index')}</th>
-          <th rowspan="2">${t('table.headers.name')}</th>
+          <th rowspan="2">Name</th>
           <th rowspan="2">${t('table.headers.critical')}</th>
           <th colspan="3">${t('table.headers.leg')}</th>
           <th colspan="3">${t('table.headers.accumulated')}</th>
