@@ -152,6 +152,9 @@ body {
   margin: 0 auto;
   color: var(--top-bar-text);
 }
+.top-bar-content .author {
+  margin-right: auto;
+}
 .top-bar-content a {
   color: var(--top-bar-text);
 }
@@ -165,6 +168,19 @@ body {
 .social-icon {
   width: 1.5rem;
   height: 1.5rem;
+}
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.language-switcher select {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--fg);
+  padding: 2px 8px;
 }
 /* =========================================================
    HEADER

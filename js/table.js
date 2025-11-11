@@ -5,6 +5,7 @@ import {
   sanitizeInt, minutesToText, percentToText, parseCondPercent,
   escapeHtml, fmtKm, fmtHrs
 } from './utils.js';
+import { t } from './i18n.js';
 
 const API = {
   // DOM
@@ -87,18 +88,18 @@ export function renderRoadbooksTable() {
     <table>
       <thead>
         <tr>
-          <th class="col-index" rowspan="2">#</th>
-          <th rowspan="2">Name</th>
-          <th rowspan="2">Critical</th>
-          <th colspan="3">Leg</th>
-          <th colspan="3">Accumulated (Σ)</th>
-          <th colspan="6">Time</th>
-          <th rowspan="2">Observations</th>
+          <th class="col-index" rowspan="2">${t('table.headers.index')}</th>
+          <th rowspan="2">${t('table.headers.name')}</th>
+          <th rowspan="2">${t('table.headers.critical')}</th>
+          <th colspan="3">${t('table.headers.leg')}</th>
+          <th colspan="3">${t('table.headers.accumulated')}</th>
+          <th colspan="6">${t('table.headers.time')}</th>
+          <th rowspan="2">${t('table.headers.observations')}</th>
         </tr>
         <tr>
-          <th>d</th><th>↑</th><th>↓</th>
-          <th>Σd</th><th>Σ↑</th><th>Σ↓</th>
-          <th>t</th><th>Stops</th><th>Cond</th><th>Total</th><th>Σt</th><th>Rem</th>
+          <th>${t('table.headers.legDistance')}</th><th>${t('table.headers.legAscent')}</th><th>${t('table.headers.legDescent')}</th>
+          <th>${t('table.headers.accDistance')}</th><th>${t('table.headers.accAscent')}</th><th>${t('table.headers.accDescent')}</th>
+          <th>${t('table.headers.timeBase')}</th><th>${t('table.headers.timeStops')}</th><th>${t('table.headers.timeCond')}</th><th>${t('table.headers.timeTotal')}</th><th>${t('table.headers.timeAccumulated')}</th><th>${t('table.headers.timeRemaining')}</th>
         </tr>
       </thead>
       <tbody>
@@ -124,11 +125,11 @@ export function renderRoadbooksTable() {
 
         <td class="leg-cell editable-cell">
           <span class="leg-name" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
-                title="Click to edit name">${escapeHtml(displayLabel)}</span>
+                title="${t('table.tooltips.editName')}">${escapeHtml(displayLabel)}</span>
         </td>
 
         <td class="critical-cell ${isCritical ? 'critical-on' : ''}">
-          <label class="crit-wrap" title="Mark leg as critical">
+          <label class="crit-wrap" title="${t('table.tooltips.markCritical')}">
             <input type="checkbox"
                   class="wb-critical"
                   data-legkey="${L.key}"
@@ -148,11 +149,11 @@ export function renderRoadbooksTable() {
 
         <td class="editable-cell">
           <span class="wb-stops" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
-                title="Integer minutes">${escapeHtml(minutesToText(L.stopsMin))}</span>
+                title="${t('table.tooltips.stops')}">${escapeHtml(minutesToText(L.stopsMin))}</span>
         </td>
         <td class="editable-cell">
           <span class="wb-cond" contenteditable="true" data-legkey="${L.key}" spellcheck="false"
-                title="Integer percent">${escapeHtml(percentToText(L.condPct))}</span>
+                title="${t('table.tooltips.conditions')}">${escapeHtml(percentToText(L.condPct))}</span>
         </td>
 
         <td>${fmtHrs(L.totalH)}</td>
@@ -161,7 +162,7 @@ export function renderRoadbooksTable() {
 
         <td class="obs-cell editable-cell">
           <span class="wb-obs" contenteditable="true" data-legkey="${L.key}" spellcheck="true"
-                title="Add notes or comments">${escapeHtml(obsText)}</span>
+                title="${t('table.tooltips.observations')}">${escapeHtml(obsText)}</span>
         </td>
       </tr>
     `;
@@ -204,11 +205,11 @@ export function updateSummaryCard() {
 
   API.outputEl.innerHTML = `
     <ul>
-      <li><strong>Distance:</strong> ${fmtKm(totals.distKm)}</li>
-      <li><strong>Ascent:</strong> ${Math.round(totals.ascM)} m</li>
-      <li><strong>Descent:</strong> ${Math.round(totals.desM)} m</li>
-      <li><strong>Estimated Activity Time:</strong> ${fmtHrs(roll.activityWithCondH)}</li>
-      <li><strong>Estimated Total Time:</strong> ${fmtHrs(roll.totalH)}</li>
+      <li><strong>${t('summary.distance')}:</strong> ${fmtKm(totals.distKm)}</li>
+      <li><strong>${t('summary.ascent')}:</strong> ${Math.round(totals.ascM)} m</li>
+      <li><strong>${t('summary.descent')}:</strong> ${Math.round(totals.desM)} m</li>
+      <li><strong>${t('summary.activityTime')}:</strong> ${fmtHrs(roll.activityWithCondH)}</li>
+      <li><strong>${t('summary.totalTime')}:</strong> ${fmtHrs(roll.totalH)}</li>
     </ul>
   `;
 }
@@ -248,7 +249,7 @@ export function wireTableFades() {
 /** Public: export the current table to CSV */
 export function exportRoadbooksCsv() {
   const table = API.roadbooksEl.querySelector('table');
-  if (!table) { alert('No table to export.'); return null; }
+  if (!table) { alert(t('table.csv.noTable')); return null; }
 
   const rows = [];
   table.querySelectorAll('thead tr').forEach(tr =>
