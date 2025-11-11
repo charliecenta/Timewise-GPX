@@ -3,10 +3,11 @@
 import { setupThemeToggle, setupAdvancedToggle, setupGpxDropzone, showMainSections } from './ui.js';
 import { bindIoAPI, readFileAsText, wireSaveLoadExport, restorePlanFromJSON } from './io.js';
 import { bindTableAPI, renderRoadbooksTable, updateSummaryCard, wireTableFades, exportRoadbooksCsv } from './table.js';
-import { bindMapAPI, ensureMap, drawPolyline, clearMarkers, addRoadbookIndex, refreshTiles, invalidateMapSize, refitToTrack } from './map.js';
+import { bindMapAPI, ensureMap, drawPolyline, clearMarkers, addRoadbookIndex, refreshTiles, invalidateMapSize, refitToTrack, getMarkers, ensureLabelPopup } from './map.js';
 import { parseGPXToSegments, parseGPXRoadbooks } from './gpx.js';
 import { buildTrackFromSegments, nearestIndexOnTrack } from './track.js';
 import { toPosNum, toNonNegNum, escapeHtml } from './utils.js';
+import { initI18n, setLanguage, getCurrentLanguage, getAvailableLanguages, onLanguageChange, t, getTranslationsForKey } from './i18n.js';
 
 //
 // ---------- DOM ----------
@@ -21,6 +22,33 @@ const exportCsvBtn  = document.getElementById('exportCsvBtn');
 const printBtn      = document.getElementById('printBtn');
 const activitySel   = document.getElementById('activityType');
 const showAdvChk    = document.getElementById('showAdvanced');
+const languageSelect = document.getElementById('languageSelect');
+
+const storedLang = localStorage.getItem('timewise-lang');
+initI18n({ defaultLang: storedLang });
+
+const defaultStartLabels = new Set(getTranslationsForKey('labels.start').map(v => (v || '').trim()));
+const defaultFinishLabels = new Set(getTranslationsForKey('labels.finish').map(v => (v || '').trim()));
+
+if (languageSelect) {
+  const options = getAvailableLanguages();
+  languageSelect.innerHTML = '';
+  options.forEach(({ code, label }) => {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = label;
+    languageSelect.appendChild(option);
+  });
+  languageSelect.value = getCurrentLanguage();
+  languageSelect.addEventListener('change', (event) => {
+    const nextLang = event.target.value;
+    setLanguage(nextLang);
+    localStorage.setItem('timewise-lang', nextLang);
+  });
+  onLanguageChange((lang) => {
+    if (languageSelect.value !== lang) languageSelect.value = lang;
+  });
+}
 
 //
 // ---------- App state (single source of truth) ----------
@@ -53,6 +81,33 @@ function setWaypointName(idx, name) {
   if (clean) roadbookLabels.set(idx, clean); else roadbookLabels.delete(idx);
 }
 function setRoadbookLabel(idx, label) { setWaypointName(idx, label); }
+
+function normaliseLockedLabels() {
+  let changed = false;
+  if (roadbookIdx.includes(0)) {
+    const current = (roadbookLabels.get(0) || '').trim();
+    const next = t('labels.start');
+    if (!current || defaultStartLabels.has(current)) {
+      if (current !== next) changed = true;
+      roadbookLabels.set(0, next);
+    }
+  }
+  if (trackLatLngs.length) {
+    const lastIdx = trackLatLngs.length - 1;
+    if (roadbookIdx.includes(lastIdx)) {
+      const current = (roadbookLabels.get(lastIdx) || '').trim();
+      const next = t('labels.finish');
+      if (!current || defaultFinishLabels.has(current)) {
+        if (current !== next) changed = true;
+        roadbookLabels.set(lastIdx, next);
+      }
+    }
+  }
+  if (changed) {
+    getMarkers().forEach(marker => ensureLabelPopup(marker));
+  }
+  return changed;
+}
 
 //
 // ---------- Wire modules to our state ----------
@@ -115,16 +170,23 @@ bindIoAPI({
   updateSummaryCard,
   showMainSections,
   exportRoadbooksCsv,
-  nearestIndexOnTrack
+  nearestIndexOnTrack,
+  normaliseLockedLabels: () => normaliseLockedLabels()
 });
 
 wireSaveLoadExport();
+
+onLanguageChange(() => {
+  normaliseLockedLabels();
+  renderRoadbooksTable();
+  updateSummaryCard();
+});
 
 //
 // ---------- Boot UI bits ----------
 setupThemeToggle({
   toggleBtn: document.getElementById('themeToggle'),
-  logoEl: document.getElementById('brandLogo'),
+  logoEl: document.getElementById('appLogo'),
   lightLogoSrc: 'assets/timewisegpx_logo_light.svg',
   darkLogoSrc: 'assets/timewisegpx_logo_dark.svg'
 });
@@ -143,7 +205,7 @@ setupGpxDropzone({
 if (calcBtn) {
   calcBtn.addEventListener('click', async () => {
     const fileInput = document.getElementById('gpxFile');
-    if (!fileInput?.files?.length) { alert('Please upload a GPX file.'); return; }
+    if (!fileInput?.files?.length) { alert(t('alerts.uploadPrompt')); return; }
     const file = fileInput.files[0];
     lastGpxName = file.name.replace(/\.[^/.]+$/, '');
 
@@ -172,8 +234,8 @@ if (clearBtn) {
     legObservations.clear();
 
     // re-add start/finish
-    addRoadbookIndex(0, { noRender: true, label: 'Start',  locked: true });
-    addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: 'Finish', locked: true });
+    addRoadbookIndex(0, { noRender: true, label: t('labels.start'),  locked: true });
+    addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: t('labels.finish'), locked: true });
     renderRoadbooksTable();
   });
 }
@@ -190,7 +252,7 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   const downhillFactor = toPosNum(document.getElementById('downhillFactor')?.value, 0.6667);
 
   const segments = parseGPXToSegments(gpxText);
-  if (!segments.length) { alert('No track segments found in GPX.'); return; }
+  if (!segments.length) { alert(t('alerts.noSegments')); return; }
 
   // build track + cumulatives
   const built = buildTrackFromSegments(segments, {
@@ -227,8 +289,8 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   }
 
   // always ensure start/finish
-  addRoadbookIndex(0, { noRender: true, label: 'Start', locked: true });
-  addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: 'Finish', locked: true });
+  addRoadbookIndex(0, { noRender: true, label: t('labels.start'), locked: true });
+  addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: t('labels.finish'), locked: true });
 
   renderRoadbooksTable();
   updateSummaryCard();
