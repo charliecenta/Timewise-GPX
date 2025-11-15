@@ -201,11 +201,11 @@ export async function restorePlanFromJSON(plan) {
   // Snapshot saved roadbooks/labels and per-leg maps
   const savedIdxArr = Array.isArray(plan.roadbookIdx) ? plan.roadbookIdx.slice() : [];
   const savedLabels = new Map(Object.entries(plan.roadbookLabels || {}).map(([k,v]) => [Number(k), v]));
-  API.legLabels       = new Map(Object.entries(plan.legLabels      || {}));
-  API.legStopsMin     = new Map(Object.entries(plan.legStopsMin    || {}));
-  API.legCondPct      = new Map(Object.entries(plan.legCondPct     || {}));
-  API.legCritical     = new Map(Object.entries(plan.legCritical    || {}).map(([k,v]) => [k, !!v]));
-  API.legObservations = new Map(Object.entries(plan.legObservations|| {}));
+  replaceMap(API.legLabels, Object.entries(plan.legLabels || {}));
+  replaceMap(API.legStopsMin, Object.entries(plan.legStopsMin || {}));
+  replaceMap(API.legCondPct, Object.entries(plan.legCondPct || {}));
+  replaceMap(API.legCritical, Object.entries(plan.legCritical || {}).map(([k,v]) => [k, !!v]));
+  replaceMap(API.legObservations, Object.entries(plan.legObservations || {}));
 
   // Reset current map waypoints
   API.clearMarkers();
@@ -322,6 +322,15 @@ function trackSignature() {
     smoothWinM: floatValById("smoothWinM", 35),
     elevDeadbandM: floatValById("elevDeadbandM", 2),
   };
+}
+
+function replaceMap(target, entries) {
+  if (!target || typeof target.clear !== 'function') return;
+  target.clear();
+  if (!entries) return;
+  for (const [k, v] of entries) {
+    target.set(k, v);
+  }
 }
 
 function downloadFile(filename, mime, text) {
