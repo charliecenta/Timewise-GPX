@@ -83,13 +83,14 @@ export function renderRoadbooksTable() {
   }
 
   const totalAdjustedH = legEntries.reduce((s, L) => s + L.totalH, 0);
+  const criticalLabel = t('table.labels.yes');
 
   let html = `
     <table>
       <thead>
         <tr>
           <th class="col-index" rowspan="2">${t('table.headers.index')}</th>
-          <th rowspan="2">Name</th>
+          <th rowspan="2">${t('table.headers.name')}</th>
           <th rowspan="2">${t('table.headers.critical')}</th>
           <th colspan="3">${t('table.headers.leg')}</th>
           <th colspan="3">${t('table.headers.accumulated')}</th>
@@ -128,7 +129,7 @@ export function renderRoadbooksTable() {
                 title="${t('table.tooltips.editName')}">${escapeHtml(displayLabel)}</span>
         </td>
 
-        <td class="critical-cell ${isCritical ? 'critical-on' : ''}">
+        <td class="critical-cell ${isCritical ? 'critical-on' : ''}" data-critical-label="${escapeHtml(criticalLabel)}">
           <label class="crit-wrap" title="${t('table.tooltips.markCritical')}">
             <input type="checkbox"
                   class="wb-critical"
@@ -251,12 +252,39 @@ export function exportRoadbooksCsv() {
   const table = API.roadbooksEl.querySelector('table');
   if (!table) { alert(t('table.csv.noTable')); return null; }
 
-  const rows = [];
-  table.querySelectorAll('thead tr').forEach(tr =>
-    rows.push([...tr.children].map(th => th.textContent.trim()))
-  );
+  const legLabel = t('table.headers.leg');
+  const accumulatedLabel = t('table.headers.accumulated');
+  const timeLabel = t('table.headers.time');
+
+  const headerRow = [
+    t('table.headers.index'),
+    t('table.headers.name'),
+    t('table.headers.critical'),
+    `${legLabel} – ${t('table.headers.legDistance')}`,
+    `${legLabel} – ${t('table.headers.legAscent')}`,
+    `${legLabel} – ${t('table.headers.legDescent')}`,
+    `${accumulatedLabel} – ${t('table.headers.accDistance')}`,
+    `${accumulatedLabel} – ${t('table.headers.accAscent')}`,
+    `${accumulatedLabel} – ${t('table.headers.accDescent')}`,
+    `${timeLabel} – ${t('table.headers.timeBase')}`,
+    `${timeLabel} – ${t('table.headers.timeStops')}`,
+    `${timeLabel} – ${t('table.headers.timeCond')}`,
+    `${timeLabel} – ${t('table.headers.timeTotal')}`,
+    `${timeLabel} – ${t('table.headers.timeAccumulated')}`,
+    `${timeLabel} – ${t('table.headers.timeRemaining')}`,
+    t('table.headers.observations'),
+  ];
+
+  const rows = [headerRow];
+  const columnCount = headerRow.length;
+  const criticalYesLabel = t('table.labels.yes');
+
   table.querySelectorAll('tbody tr').forEach(tr => {
     const cells = [...tr.children].map(td => {
+      if (td.classList.contains('critical-cell')) {
+        const checkbox = td.querySelector('input[type="checkbox"]');
+        return checkbox && checkbox.checked ? criticalYesLabel : '';
+      }
       const sel = td.querySelector('select');
       if (sel) {
         const opt = sel.options[sel.selectedIndex];
@@ -266,6 +294,11 @@ export function exportRoadbooksCsv() {
       if (span) return span.textContent.trim();
       return td.textContent.replace(/\s+/g,' ').trim();
     });
+    if (cells.length < columnCount) {
+      while (cells.length < columnCount) cells.push('');
+    } else if (cells.length > columnCount) {
+      cells.length = columnCount;
+    }
     rows.push(cells);
   });
 

@@ -112,6 +112,9 @@ const translations = {
         conditions: 'Integer percent',
         observations: 'Add notes or comments',
       },
+      labels: {
+        yes: 'Yes',
+      },
       csv: {
         noTable: 'No table to export.',
       },
@@ -233,6 +236,9 @@ const translations = {
         conditions: 'Porcentaje entero',
         observations: 'Añade notas o comentarios',
       },
+      labels: {
+        yes: 'Sí',
+      },
       csv: {
         noTable: 'No hay tabla para exportar.',
       },
@@ -353,6 +359,9 @@ const translations = {
         stops: 'Minuts enters',
         conditions: 'Percentatge enter',
         observations: 'Afegeix notes o comentaris',
+      },
+      labels: {
+        yes: 'Sí',
       },
       csv: {
         noTable: 'No hi ha cap taula per exportar.',
