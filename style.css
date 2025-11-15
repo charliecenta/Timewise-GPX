@@ -435,7 +435,17 @@ h1 { margin: 0; font-size: 20px; }
   margin-top: 12px;
 }
 .actions .spacer { flex: 1; }
-
+.button {
+  appearance: none;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--fg);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease;
+  font-size: 0.875rem;
+}
 button {
   appearance: none;
   border: 1px solid var(--btn-border);

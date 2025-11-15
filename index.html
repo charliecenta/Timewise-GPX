@@ -37,11 +37,11 @@
     <div class="header-actions">
       <div class="language-switcher">
         <label for="languageSelector" class="visually-hidden" data-i18n="labels.languageSelect">Language</label>
-        <select id="languageSelector" class="language-select" data-i18n-attrs="aria-label:labels.languageSelect"></select>
+        <select id="languageSelector" class="language-select button" data-i18n-attrs="aria-label:labels.languageSelect"></select>
       </div>
-      <button id="themeToggle" data-i18n-attrs="title:buttons.themeToggle" title="Toggle theme">🌗</button>
-      <button id="savePlanBtn" data-i18n="buttons.save" disabled>Save</button>
-      <button id="loadPlanBtn" data-i18n="buttons.load">Load</button>
+      <button id="themeToggle" class="button" data-i18n-attrs="title:buttons.themeToggle" title="Toggle theme">🌗</button>
+      <button id="savePlanBtn" class="button" data-i18n="buttons.save" disabled>Save</button>
+      <button id="loadPlanBtn" class="button" data-i18n="buttons.load">Load</button>
     </div>
   </header>
 
@@ -61,14 +61,14 @@
             </svg>
             <h3 data-i18n="gpx.dropzoneHeading">Upload GPX file</h3>
             <p data-i18n="gpx.dropHint">Drag & drop a GPX file here, or</p>
-            <button id="selectGpxBtn" type="button" class="btn" data-i18n="buttons.selectFile">Select File</button>
+            <button id="selectGpxBtn" type="button" class="bt" data-i18n="buttons.selectFile">Select File</button>
             <input id="gpxFile" type="file" accept=".gpx,.GPX,application/gpx+xml,application/xml,text/xml,application/octet-stream" hidden>
             <div id="gpxStatus" class="dz-status" aria-live="polite"></div>
           </div>
 
         </label>
         <div class="actions">
-          <button id="calculateBtn" class="primary process" data-i18n="buttons.processGpx">Process GPX</button>
+          <button id="calculateBtn" class="primary process button" data-i18n="buttons.processGpx">Process GPX</button>
         </div>
       </div>
 
@@ -158,7 +158,7 @@
       <div class="card is-hidden" id="mapCard">
         <div class="card-header">
           <h2 data-i18n="map.title">Map</h2>
-          <button id="clearRoadbooksBtn" data-i18n="buttons.clearRoadbooks" disabled>Clear roadbooks</button>
+          <button id="clearRoadbooksBtn" class="button" data-i18n="buttons.clearRoadbooks" disabled>Clear roadbooks</button>
         </div>
         <div id="map" class="map" role="img" aria-label="Route map"></div>
       </div>
@@ -174,8 +174,8 @@
       <div class="card-header">
         <h2 data-i18n="map.itinerary">Itinerary</h2>
         <div class="planning-actions">
-          <button id="printBtn" data-i18n="buttons.print" disabled>Print</button>
-          <button id="exportCsvBtn" data-i18n="buttons.exportCsv" disabled>Export CSV</button>
+          <button id="printBtn" class="button" data-i18n="buttons.print" disabled>Print</button>
+          <button id="exportCsvBtn" class="button" data-i18n="buttons.exportCsv" disabled>Export CSV</button>
         </div>
       </div>
       <div class="table-outer">
