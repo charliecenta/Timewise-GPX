@@ -123,7 +123,21 @@ bindIoAPI({
   updateSummaryCard,
   showMainSections,
   exportRoadbooksCsv,
-  nearestIndexOnTrack
+  nearestIndexOnTrack,
+
+  // shared state (allow IO to read/write live data)
+  getTrackLatLngs: () => trackLatLngs,
+  getCumDist: () => cumDistKm,
+  getCumAsc: () => cumAscentM,
+  getCumDes: () => cumDescentM,
+  getCumTime: () => cumTimeH,
+  roadbookIdx,
+  roadbookLabels,
+  legLabels,
+  legStopsMin,
+  legCondPct,
+  legCritical,
+  legObservations
 });
 
 wireSaveLoadExport();
