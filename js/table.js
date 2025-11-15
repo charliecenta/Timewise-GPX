@@ -83,6 +83,7 @@ export function renderRoadbooksTable() {
   }
 
   const totalAdjustedH = legEntries.reduce((s, L) => s + L.totalH, 0);
+  const criticalLabel = escapeHtml(t('table.csv.criticalYes'));
 
   let html = `
     <table>
@@ -128,7 +129,7 @@ export function renderRoadbooksTable() {
                 title="${t('table.tooltips.editName')}">${escapeHtml(displayLabel)}</span>
         </td>
 
-        <td class="critical-cell ${isCritical ? 'critical-on' : ''}">
+        <td class="critical-cell ${isCritical ? 'critical-on' : ''}" data-critical-label="${criticalLabel}">
           <label class="crit-wrap" title="${t('table.tooltips.markCritical')}">
             <input type="checkbox"
                   class="wb-critical"
