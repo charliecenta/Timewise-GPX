@@ -280,6 +280,10 @@ export function exportRoadbooksCsv() {
         const opt = sel.options[sel.selectedIndex];
         return (opt ? opt.text : sel.value || '');
       }
+      const checkbox = td.querySelector('input[type="checkbox"]');
+      if (checkbox) {
+        return checkbox.checked ? t('table.csv.criticalYes') : '';
+      }
       const span = td.querySelector('span');
       if (span) return span.textContent.trim();
       return td.textContent.replace(/\s+/g,' ').trim();

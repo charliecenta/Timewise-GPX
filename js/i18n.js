@@ -114,6 +114,7 @@ const translations = {
       },
       csv: {
         noTable: 'No table to export.',
+        criticalYes: 'Yes',
       },
     },
     io: {
@@ -235,6 +236,7 @@ const translations = {
       },
       csv: {
         noTable: 'No hay tabla para exportar.',
+        criticalYes: 'Sí',
       },
     },
     io: {
@@ -356,6 +358,7 @@ const translations = {
       },
       csv: {
         noTable: 'No hi ha cap taula per exportar.',
+        criticalYes: 'Sí',
       },
     },
     io: {
