@@ -873,7 +873,7 @@ td.critical-cell .crit-wrap {
     display: none !important;
   }
   .critical-cell.critical-on::after {
-    content: "Yes";
+    content: attr(data-critical-label);
     display: flex;
     align-items: center;
     justify-content: center;
