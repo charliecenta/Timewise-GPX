@@ -2,6 +2,8 @@
 // Centralised I/O: read files, Save JSON, Load JSON, Export CSV, and UI wiring.
 // This module is UI-agnostic and talks to the app via bindIoAPI().
 
+import { t } from './i18n.js';
+
 const API = {
   // DOM
   saveBtn: null,
@@ -163,7 +165,7 @@ export async function restorePlanFromJSON(plan) {
 
   if (!track.length) {
     if (!plan.gpxText) {
-      alert("This saved plan has no embedded GPX. Please process a GPX first, then load the plan.");
+      alert(t('io.savedPlanMissing'));
       return;
     }
     // Apply saved settings to DOM BEFORE processing GPX
@@ -248,7 +250,7 @@ async function onLoadChange(e) {
     // If user selects a GPX file here by mistake, import it as GPX
     if (/^</.test(trimmed)) {
       await API.processGpxText(trimmed, /* importRoadbooks */ true);
-      alert("Loaded a GPX file. (Tip: use Save to export a resumable plan JSON.)");
+      alert(t('io.loadedGpx'));
       return;
     }
 
@@ -258,19 +260,19 @@ async function onLoadChange(e) {
       plan = safeParseJSON(text);
     } catch (parseErr) {
       console.error('JSON parse failed:', parseErr);
-      alert("Could not parse the plan JSON. Make sure you selected a file saved by this app.");
+      alert(t('io.parseFailed'));
       return;
     }
 
     if (!plan.gpxText && API.getTrackLatLngs().length === 0) {
-      alert("This saved plan doesn’t contain embedded GPX. Process the original GPX once, then load the plan again.");
+      alert(t('io.missingEmbeddedGpx'));
       return;
     }
 
     await restorePlanFromJSON(plan);
   } catch (err) {
     console.error('Load failed:', err);
-    alert(`Could not load the file.\n\n${err?.message ?? ''}`);
+    alert(t('io.loadFailed', { message: err?.message ?? '' }));
   } finally {
     if (API.loadInput) API.loadInput.value = "";
   }
@@ -278,7 +280,7 @@ async function onLoadChange(e) {
 
 function onExportCsv() {
   const csv = API.exportRoadbooksCsv?.();
-  if (!csv) { alert('No table to export.'); return; }
+  if (!csv) { alert(t('io.noTable')); return; }
   downloadFile('roadbooks_table.csv', 'text/csv;charset=utf-8', csv);
 }
 
