@@ -152,9 +152,6 @@ body {
   margin: 0 auto;
   color: var(--top-bar-text);
 }
-.top-bar-content .author {
-  margin-right: auto;
-}
 .top-bar-content a {
   color: var(--top-bar-text);
 }
