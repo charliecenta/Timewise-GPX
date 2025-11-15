@@ -271,6 +271,9 @@ async function processGpxText(gpxText, importRoadbooks = true) {
 
 
 
+  if (clearBtn) {
+    clearBtn.disabled = trackLatLngs.length === 0;
+  }
   exportCsvBtn.disabled = false;
   saveBtn && (saveBtn.disabled = false);
   setTimeout(() => { printBtn && (printBtn.disabled = false); }, 0);
