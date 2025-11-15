@@ -83,6 +83,7 @@ export function renderRoadbooksTable() {
   }
 
   const totalAdjustedH = legEntries.reduce((s, L) => s + L.totalH, 0);
+  const criticalLabel = escapeHtml(t('table.csv.criticalYes'));
 
   let html = `
     <table>
@@ -128,7 +129,7 @@ export function renderRoadbooksTable() {
                 title="${t('table.tooltips.editName')}">${escapeHtml(displayLabel)}</span>
         </td>
 
-        <td class="critical-cell ${isCritical ? 'critical-on' : ''}">
+        <td class="critical-cell ${isCritical ? 'critical-on' : ''}" data-critical-label="${criticalLabel}">
           <label class="crit-wrap" title="${t('table.tooltips.markCritical')}">
             <input type="checkbox"
                   class="wb-critical"
@@ -252,9 +253,27 @@ export function exportRoadbooksCsv() {
   if (!table) { alert(t('table.csv.noTable')); return null; }
 
   const rows = [];
-  table.querySelectorAll('thead tr').forEach(tr =>
-    rows.push([...tr.children].map(th => th.textContent.trim()))
-  );
+  const headers = [
+    t('table.headers.index'),
+    t('table.headers.name'),
+    t('table.headers.critical'),
+    `${t('table.headers.leg')} – ${t('table.headers.legDistance')}`,
+    `${t('table.headers.leg')} – ${t('table.headers.legAscent')}`,
+    `${t('table.headers.leg')} – ${t('table.headers.legDescent')}`,
+    `${t('table.headers.accumulated')} – ${t('table.headers.accDistance')}`,
+    `${t('table.headers.accumulated')} – ${t('table.headers.accAscent')}`,
+    `${t('table.headers.accumulated')} – ${t('table.headers.accDescent')}`,
+    `${t('table.headers.time')} – ${t('table.headers.timeBase')}`,
+    `${t('table.headers.time')} – ${t('table.headers.timeStops')}`,
+    `${t('table.headers.time')} – ${t('table.headers.timeCond')}`,
+    `${t('table.headers.time')} – ${t('table.headers.timeTotal')}`,
+    `${t('table.headers.time')} – ${t('table.headers.timeAccumulated')}`,
+    `${t('table.headers.time')} – ${t('table.headers.timeRemaining')}`,
+    t('table.headers.observations'),
+  ];
+  rows.push(headers);
+
+  const rowLength = headers.length;
   table.querySelectorAll('tbody tr').forEach(tr => {
     const cells = [...tr.children].map(td => {
       const sel = td.querySelector('select');
@@ -262,10 +281,16 @@ export function exportRoadbooksCsv() {
         const opt = sel.options[sel.selectedIndex];
         return (opt ? opt.text : sel.value || '');
       }
+      const checkbox = td.querySelector('input[type="checkbox"]');
+      if (checkbox) {
+        return checkbox.checked ? t('table.csv.criticalYes') : '';
+      }
       const span = td.querySelector('span');
       if (span) return span.textContent.trim();
       return td.textContent.replace(/\s+/g,' ').trim();
     });
+    while (cells.length < rowLength) cells.push('');
+    if (cells.length > rowLength) cells.length = rowLength;
     rows.push(cells);
   });
 
