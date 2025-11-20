@@ -316,6 +316,12 @@ h1 { margin: 0; font-size: 20px; }
   margin-bottom: 10px;
 }
 
+#summaryCard .summary-formula {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
 /* =========================================================
    CONTROLS
    ========================================================= */

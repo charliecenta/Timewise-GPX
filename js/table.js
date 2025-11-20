@@ -203,6 +203,8 @@ export function updateSummaryCard() {
     desM:     cumDescentM[cumDescentM.length - 1] ?? 0,
   };
   const roll = computeTimeRollups();
+  const formulaText = t('summary.timeFormula');
+  const formulaHtml = formulaText ? `<p class="summary-formula"><em>${escapeHtml(formulaText)}</em></p>` : '';
 
   API.outputEl.innerHTML = `
     <ul>
@@ -212,6 +214,7 @@ export function updateSummaryCard() {
       <li><strong>${t('summary.activityTime')}:</strong> ${fmtHrs(roll.activityWithCondH)}</li>
       <li><strong>${t('summary.totalTime')}:</strong> ${fmtHrs(roll.totalH)}</li>
     </ul>
+    ${formulaHtml}
   `;
 }
 

@@ -82,6 +82,7 @@ const translations = {
       descent: 'Descent',
       activityTime: 'Estimated Activity Time',
       totalTime: 'Estimated Total Time',
+      timeFormula: 'Time = Base × (1 + Conditions ÷ 100) + Stops ÷ 60',
     },
     table: {
       headers: {
@@ -206,6 +207,7 @@ const translations = {
       descent: 'Descenso',
       activityTime: 'Tiempo de actividad estimado',
       totalTime: 'Tiempo total estimado',
+      timeFormula: 'Tiempo = Base × (1 + Condiciones ÷ 100) + Paradas ÷ 60',
     },
     table: {
       headers: {
@@ -330,6 +332,7 @@ const translations = {
       descent: 'Desnivell negatiu',
       activityTime: 'Temps d’activitat estimat',
       totalTime: 'Temps total estimat',
+      timeFormula: 'Temps = Base × (1 + Condicions ÷ 100) + Parades ÷ 60',
     },
     table: {
       headers: {
