@@ -82,7 +82,7 @@ const translations = {
       descent: 'Descent',
       activityTime: 'Estimated Activity Time',
       totalTime: 'Estimated Total Time',
-      timeFormula: 'Time = Base × (1 + Conditions ÷ 100) + Stops ÷ 60',
+      timeFormula: 'Base = max(Flat, Vertical) + 0.5 × min(Flat, Vertical); downhill legs × Downhill factor',
     },
     table: {
       headers: {
@@ -207,7 +207,7 @@ const translations = {
       descent: 'Descenso',
       activityTime: 'Tiempo de actividad estimado',
       totalTime: 'Tiempo total estimado',
-      timeFormula: 'Tiempo = Base × (1 + Condiciones ÷ 100) + Paradas ÷ 60',
+      timeFormula: 'Base = max(Llano, Vertical) + 0,5 × min(Llano, Vertical); tramos de bajada × Factor de bajada',
     },
     table: {
       headers: {
@@ -332,7 +332,7 @@ const translations = {
       descent: 'Desnivell negatiu',
       activityTime: 'Temps d’activitat estimat',
       totalTime: 'Temps total estimat',
-      timeFormula: 'Temps = Base × (1 + Condicions ÷ 100) + Parades ÷ 60',
+      timeFormula: 'Base = max(Plane, Vertical) + 0,5 × min(Plane, Vertical); trams de baixada × Factor de baixada',
     },
     table: {
       headers: {
