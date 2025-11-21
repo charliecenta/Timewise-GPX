@@ -203,6 +203,15 @@ export function updateSummaryCard() {
     desM:     cumDescentM[cumDescentM.length - 1] ?? 0,
   };
   const roll = computeTimeRollups();
+  const activity = API.getActivityType ? API.getActivityType() : 'hike';
+  const formulaText = t(`summary.formulas.${activity}`, {}, '');
+  const formulaHeading = t('summary.formulaHeading');
+  const formulaHtml = formulaText ? `
+    <div class="summary-formula">
+      <p class="summary-formula-heading">${escapeHtml(formulaHeading)}</p>
+      <p class="summary-formula-text"><em>${escapeHtml(formulaText)}</em></p>
+    </div>
+  ` : '';
 
   API.outputEl.innerHTML = `
     <ul>
@@ -212,6 +221,7 @@ export function updateSummaryCard() {
       <li><strong>${t('summary.activityTime')}:</strong> ${fmtHrs(roll.activityWithCondH)}</li>
       <li><strong>${t('summary.totalTime')}:</strong> ${fmtHrs(roll.totalH)}</li>
     </ul>
+    ${formulaHtml}
   `;
 }
 

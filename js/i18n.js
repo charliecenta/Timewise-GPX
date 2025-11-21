@@ -19,6 +19,7 @@ const translations = {
       clearRoadbooks: 'Clear roadbooks',
       print: 'Print',
       exportCsv: 'Export CSV',
+      updateSettings: 'Update settings',
       changeFile: 'Change File',
       selectFile: 'Select File',
       themeToggle: 'Toggle theme',
@@ -33,6 +34,7 @@ const translations = {
       dropzoneLabel: 'Upload GPX file',
       dropzoneHeading: 'Upload GPX file',
       dropHint: 'Drag & drop a GPX file here, or',
+      replaceWarning: 'Uploading a new GPX will discard your existing plan. Continue?',
       ready: '<span class="ok">Ready:</span> {{name}} · {{size}}',
       error: '<span class="err">Error:</span> {{message}}',
       errors: {
@@ -47,8 +49,7 @@ const translations = {
       activity: {
         label: 'Activity',
         hike: 'Hiking / trail',
-        mtb: 'Mountain biking',
-        road: 'Road cycling',
+        snowshoe: 'Snowshoeing',
       },
       flatSpeed: 'Flat speed (km/h)',
       verticalSpeed: 'Vertical speed (m/h)',
@@ -62,6 +63,9 @@ const translations = {
       deadbandTip: 'Ignore elevation wiggles smaller than this threshold when computing ascent/descent (reduces GPS jitter). Typical: 1–3 m.',
       showAdvanced: 'Show advanced configuration',
       importRoadbooks: 'Import roadbooks from GPX',
+      errors: {
+        noGpxLoaded: 'Upload and process a GPX file before updating settings.',
+      },
     },
     map: {
       title: 'Map',
@@ -72,6 +76,7 @@ const translations = {
       autoPrefix: 'WP',
       waypointName: 'Waypoint name',
       confirmDelete: 'Are you sure you want to remove this waypoint?',
+      confirmClearRoadbooksDetail: 'This will remove all waypoints except Start and Finish. Continue?',
       editor: {
         heading: 'Waypoint name',
       },
@@ -82,6 +87,11 @@ const translations = {
       descent: 'Descent',
       activityTime: 'Estimated Activity Time',
       totalTime: 'Estimated Total Time',
+      formulaHeading: 'Formula',
+      formulas: {
+        hike: 'Activity Time = max(Flat, Vertical) + 0.5 × min(Flat, Vertical); downhill legs × Downhill factor',
+        snowshoe: 'Activity Time = Flat + Vertical; downhill legs × Downhill factor',
+      },
     },
     table: {
       headers: {
@@ -143,6 +153,7 @@ const translations = {
       clearRoadbooks: 'Limpiar roadbooks',
       print: 'Imprimir',
       exportCsv: 'Exportar CSV',
+      updateSettings: 'Actualizar configuración',
       changeFile: 'Cambiar archivo',
       selectFile: 'Seleccionar archivo',
       themeToggle: 'Cambiar tema',
@@ -157,6 +168,7 @@ const translations = {
       dropzoneLabel: 'Subir archivo GPX',
       dropzoneHeading: 'Subir archivo GPX',
       dropHint: 'Arrastra y suelta un archivo GPX aquí, o',
+      replaceWarning: 'Subir un nuevo GPX reemplazará tu plan actual y perderás los cambios. ¿Quieres continuar?',
       ready: '<span class="ok">Listo:</span> {{name}} · {{size}}',
       error: '<span class="err">Error:</span> {{message}}',
       errors: {
@@ -171,8 +183,7 @@ const translations = {
       activity: {
         label: 'Actividad',
         hike: 'Senderismo / trail',
-        mtb: 'Ciclismo de montaña',
-        road: 'Ciclismo de carretera',
+        snowshoe: 'Raquetas de nieve',
       },
       flatSpeed: 'Velocidad en llano (km/h)',
       verticalSpeed: 'Velocidad vertical (m/h)',
@@ -186,6 +197,9 @@ const translations = {
       deadbandTip: 'Ignora pequeñas oscilaciones de elevación por debajo de este umbral al calcular ascenso/descenso (reduce el ruido del GPS). Típico: 1–3 m.',
       showAdvanced: 'Mostrar configuración avanzada',
       importRoadbooks: 'Importar roadbooks desde el GPX',
+      errors: {
+        noGpxLoaded: 'Sube y procesa un archivo GPX antes de actualizar la configuración.',
+      },
     },
     map: {
       title: 'Mapa',
@@ -196,6 +210,7 @@ const translations = {
       autoPrefix: 'WP',
       waypointName: 'Nombre del punto',
       confirmDelete: '¿Seguro que quieres eliminar este punto?',
+      confirmClearRoadbooksDetail: 'Esto eliminará todos los puntos excepto el inicio y el final. ¿Continuar?',
       editor: {
         heading: 'Nombre del punto',
       },
@@ -206,6 +221,11 @@ const translations = {
       descent: 'Descenso',
       activityTime: 'Tiempo de actividad estimado',
       totalTime: 'Tiempo total estimado',
+      formulaHeading: 'Fórmula',
+      formulas: {
+        hike: 'Tiempo de actividad = max(Llano, Vertical) + 0,5 × min(Llano, Vertical); tramos de bajada × Factor de bajada',
+        snowshoe: 'Tiempo de actividad = Llano + Vertical; tramos de bajada × Factor de bajada',
+      },
     },
     table: {
       headers: {
@@ -267,6 +287,7 @@ const translations = {
       clearRoadbooks: 'Neteja els roadbooks',
       print: 'Imprimeix',
       exportCsv: 'Exporta CSV',
+      updateSettings: 'Actualitza la configuració',
       changeFile: 'Canvia el fitxer',
       selectFile: 'Selecciona el fitxer',
       themeToggle: 'Canvia el tema',
@@ -281,6 +302,7 @@ const translations = {
       dropzoneLabel: 'Puja un fitxer GPX',
       dropzoneHeading: 'Puja un fitxer GPX',
       dropHint: 'Arrossega i deixa anar un fitxer GPX aquí, o',
+      replaceWarning: 'Pujar un nou GPX substituirà el pla actual i perdràs els canvis. Vols continuar?',
       ready: '<span class="ok">Preparat:</span> {{name}} · {{size}}',
       error: '<span class="err">Error:</span> {{message}}',
       errors: {
@@ -295,8 +317,7 @@ const translations = {
       activity: {
         label: 'Activitat',
         hike: 'Senderisme / trail',
-        mtb: 'BTT',
-        road: 'Ciclisme de carretera',
+        snowshoe: 'Raquetes de neu',
       },
       flatSpeed: 'Velocitat en pla (km/h)',
       verticalSpeed: 'Velocitat vertical (m/h)',
@@ -310,6 +331,9 @@ const translations = {
       deadbandTip: 'Ignora oscil·lacions d’elevació per sota d’aquest llindar en calcular l’ascens/descens (redueix el soroll del GPS). Habitual: 1–3 m.',
       showAdvanced: 'Mostra la configuració avançada',
       importRoadbooks: 'Importa roadbooks del GPX',
+      errors: {
+        noGpxLoaded: 'Puja i processa un fitxer GPX abans d’actualitzar la configuració.',
+      },
     },
     map: {
       title: 'Mapa',
@@ -320,6 +344,7 @@ const translations = {
       autoPrefix: 'WP',
       waypointName: 'Nom del punt',
       confirmDelete: 'Segur que vols eliminar aquest punt?',
+      confirmClearRoadbooksDetail: 'Això eliminarà tots els punts excepte l’inici i el final. Vols continuar?',
       editor: {
         heading: 'Nom del punt',
       },
@@ -330,6 +355,11 @@ const translations = {
       descent: 'Desnivell negatiu',
       activityTime: 'Temps d’activitat estimat',
       totalTime: 'Temps total estimat',
+      formulaHeading: 'Fórmula',
+      formulas: {
+        hike: 'Temps d’activitat = max(Plane, Vertical) + 0,5 × min(Plane, Vertical); trams de baixada × Factor de baixada',
+        snowshoe: 'Temps d’activitat = Pla + Vertical; trams de baixada × Factor de baixada',
+      },
     },
     table: {
       headers: {
