@@ -48,7 +48,7 @@ export function setupAdvancedToggle({ checkbox, settingsCard }) {
  * Drag & drop + chooser UI for GPX file.
  * This does *not* parse files; it only updates the UI and enables the Process button.
  */
-export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, processBtn, clearBtn }) {
+export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, processBtn, onBeforeFileAccept, onFileReady }) {
   if (!dropEl || !fileInput) return;
 
   const on = (el, evts, fn) => evts.forEach(evt => el.addEventListener(evt, fn));
@@ -61,6 +61,14 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
 
   const kib = (n) => (n / 1024).toFixed(1) + ' KB';
   const state = { mode: 'idle', file: null, error: null };
+  let lastAcceptedFile = null;
+
+  const restoreLastAccepted = () => {
+    if (!lastAcceptedFile) { fileInput.value = ''; return; }
+    const dt = new DataTransfer();
+    dt.items.add(lastAcceptedFile);
+    fileInput.files = dt.files;
+  };
 
   const renderState = () => {
     if (state.mode === 'ready' && state.file) {
@@ -86,6 +94,7 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
   const setReady = (file) => {
     state.mode = 'ready';
     state.file = file;
+    lastAcceptedFile = file;
     state.error = null;
     renderState();
   };
@@ -101,6 +110,7 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
     state.mode = 'idle';
     state.file = null;
     state.error = null;
+    lastAcceptedFile = null;
     renderState();
     // if you want to disable Process until next selection, uncomment:
     // if (processBtn) processBtn.disabled = true;
@@ -130,17 +140,20 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
   });
 
   // Input change → status update
-  fileInput.addEventListener('change', () => {
+  fileInput.addEventListener('change', async () => {
     const f = fileInput.files?.[0];
     if (!f) { clearState(); return; }
     if (!/\.gpx$/i.test(f.name) && f.type !== 'application/gpx+xml') {
       setErrorKey('gpx.errors.selectWrongType');
       return;
     }
+    if (onBeforeFileAccept) {
+      const ok = await onBeforeFileAccept(f, lastAcceptedFile);
+      if (!ok) { restoreLastAccepted(); renderState(); return; }
+    }
     setReady(f);
+    if (onFileReady) onFileReady(f);
   });
-
-  clearBtn?.addEventListener('click', clearState);
 }
 
 /** Toggle the visibility of the main sections (map, summary, table). */

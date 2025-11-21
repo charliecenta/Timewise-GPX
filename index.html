@@ -48,7 +48,7 @@
   <main class="wrap">
     <!-- Controls -->
     <section class="grid">
-      <div class="card">
+      <div class="card gpx-card">
         <h2 data-i18n="gpx.title">GPX Upload</h2>
         <!-- File -->
         <label class="field file">
@@ -67,9 +67,6 @@
           </div>
 
         </label>
-        <div class="actions">
-          <button id="calculateBtn" class="primary process button" data-i18n="buttons.processGpx">Process GPX</button>
-        </div>
       </div>
 
       <div class="card" id="settingsCard">
@@ -147,6 +144,10 @@
               <span data-i18n="settings.importRoadbooks">Import roadbooks from GPX</span>
             </label>
           </div>
+        </div>
+        <div class="actions settings-actions">
+          <div class="spacer"></div>
+          <button id="updateSettingsBtn" class="primary button" data-i18n="buttons.updateSettings">Update settings</button>
         </div>
         <input type="file" id="loadPlanInput" accept=".json" hidden />
       </div>
