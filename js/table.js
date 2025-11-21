@@ -204,7 +204,13 @@ export function updateSummaryCard() {
   };
   const roll = computeTimeRollups();
   const formulaText = t('summary.timeFormula');
-  const formulaHtml = formulaText ? `<p class="summary-formula"><em>${escapeHtml(formulaText)}</em></p>` : '';
+  const formulaHeading = t('summary.formulaHeading');
+  const formulaHtml = formulaText ? `
+    <div class="summary-formula">
+      <p class="summary-formula-heading">${escapeHtml(formulaHeading)}</p>
+      <p class="summary-formula-text"><em>${escapeHtml(formulaText)}</em></p>
+    </div>
+  ` : '';
 
   API.outputEl.innerHTML = `
     <ul>
