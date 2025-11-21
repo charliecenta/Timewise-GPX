@@ -47,8 +47,7 @@ const translations = {
       activity: {
         label: 'Activity',
         hike: 'Hiking / trail',
-        mtb: 'Mountain biking',
-        road: 'Road cycling',
+        snowshoe: 'Snowshoeing',
       },
       flatSpeed: 'Flat speed (km/h)',
       verticalSpeed: 'Vertical speed (m/h)',
@@ -83,7 +82,10 @@ const translations = {
       activityTime: 'Estimated Activity Time',
       totalTime: 'Estimated Total Time',
       formulaHeading: 'Formula',
-      timeFormula: 'Base = max(Flat, Vertical) + 0.5 × min(Flat, Vertical); downhill legs × Downhill factor',
+      formulas: {
+        hike: 'Activity Time = max(Flat, Vertical) + 0.5 × min(Flat, Vertical); downhill legs × Downhill factor',
+        snowshoe: 'Activity Time = Flat + Vertical; downhill legs × Downhill factor',
+      },
     },
     table: {
       headers: {
@@ -173,8 +175,7 @@ const translations = {
       activity: {
         label: 'Actividad',
         hike: 'Senderismo / trail',
-        mtb: 'Ciclismo de montaña',
-        road: 'Ciclismo de carretera',
+        snowshoe: 'Raquetas de nieve',
       },
       flatSpeed: 'Velocidad en llano (km/h)',
       verticalSpeed: 'Velocidad vertical (m/h)',
@@ -209,7 +210,10 @@ const translations = {
       activityTime: 'Tiempo de actividad estimado',
       totalTime: 'Tiempo total estimado',
       formulaHeading: 'Fórmula',
-      timeFormula: 'Base = max(Llano, Vertical) + 0,5 × min(Llano, Vertical); tramos de bajada × Factor de bajada',
+      formulas: {
+        hike: 'Tiempo de actividad = max(Llano, Vertical) + 0,5 × min(Llano, Vertical); tramos de bajada × Factor de bajada',
+        snowshoe: 'Tiempo de actividad = Llano + Vertical; tramos de bajada × Factor de bajada',
+      },
     },
     table: {
       headers: {
@@ -299,8 +303,7 @@ const translations = {
       activity: {
         label: 'Activitat',
         hike: 'Senderisme / trail',
-        mtb: 'BTT',
-        road: 'Ciclisme de carretera',
+        snowshoe: 'Raquetes de neu',
       },
       flatSpeed: 'Velocitat en pla (km/h)',
       verticalSpeed: 'Velocitat vertical (m/h)',
@@ -335,7 +338,10 @@ const translations = {
       activityTime: 'Temps d’activitat estimat',
       totalTime: 'Temps total estimat',
       formulaHeading: 'Fórmula',
-      timeFormula: 'Base = max(Plane, Vertical) + 0,5 × min(Plane, Vertical); trams de baixada × Factor de baixada',
+      formulas: {
+        hike: 'Temps d’activitat = max(Plane, Vertical) + 0,5 × min(Plane, Vertical); trams de baixada × Factor de baixada',
+        snowshoe: 'Temps d’activitat = Pla + Vertical; trams de baixada × Factor de baixada',
+      },
     },
     table: {
       headers: {

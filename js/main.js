@@ -8,6 +8,7 @@ import { parseGPXToSegments, parseGPXRoadbooks } from './gpx.js';
 import { buildTrackFromSegments, nearestIndexOnTrack } from './track.js';
 import { toPosNum, toNonNegNum, escapeHtml } from './utils.js';
 import { initI18n, addLanguageChangeListener, t } from './i18n.js';
+import { ACTIVITY_PRESETS } from './config.js';
 
 //
 // ---------- DOM ----------
@@ -25,6 +26,20 @@ const showAdvChk    = document.getElementById('showAdvanced');
 const languageSelect = document.getElementById('languageSelector');
 
 initI18n({ selectorEl: languageSelect });
+
+function applyActivityPreset(kind) {
+  const preset = ACTIVITY_PRESETS[kind];
+  if (!preset) return;
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  setVal('spacingM', preset.spacing);
+  setVal('smoothWinM', preset.smooth);
+  setVal('speedFlat', preset.speedFlat);
+  setVal('speedVert', preset.speedVert);
+  setVal('downhillFactor', preset.dhf);
+}
 
 //
 // ---------- App state (single source of truth) ----------
@@ -71,6 +86,7 @@ bindTableAPI({
   getCumAsc:   () => cumAscentM,
   getCumDes:   () => cumDescentM,
   getCumTime:  () => cumTimeH,
+  getActivityType: () => activitySel?.value || 'hike',
   // leg + labels maps
   roadbookIdx,
   roadbookLabels,
@@ -175,6 +191,14 @@ addLanguageChangeListener(() => {
   updateSummaryCard();
 });
 
+if (activitySel) {
+  applyActivityPreset(activitySel.value);
+  activitySel.addEventListener('change', () => {
+    applyActivityPreset(activitySel.value);
+    updateSummaryCard();
+  });
+}
+
 //
 // ---------- Process / Clear buttons ----------
 if (calcBtn) {
@@ -222,9 +246,10 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   const spacingM      = toPosNum(document.getElementById('spacingM')?.value, 5);
   const smoothWinM    = toPosNum(document.getElementById('smoothWinM')?.value, 15);
   const elevDeadbandM = toNonNegNum(document.getElementById('elevDeadbandM')?.value, 2);
-  const speedFlatKmh  = toPosNum(document.getElementById('speedFlatKmh')?.value, 4);
-  const speedVertMh   = toPosNum(document.getElementById('speedVertMh')?.value, 300);
+  const speedFlatKmh  = toPosNum(document.getElementById('speedFlat')?.value, 4);
+  const speedVertMh   = toPosNum(document.getElementById('speedVert')?.value, 300);
   const downhillFactor = toPosNum(document.getElementById('downhillFactor')?.value, 0.6667);
+  const activity       = activitySel?.value || 'hike';
 
   const segments = parseGPXToSegments(gpxText);
   if (!segments.length) { alert(t('gpx.errors.noSegments')); return; }
@@ -232,7 +257,8 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   // build track + cumulatives
   const built = buildTrackFromSegments(segments, {
     spacingM, smoothWinM, elevDeadbandM,
-    speedFlatKmh, speedVertMh, downhillFactor
+    speedFlatKmh, speedVertMh, downhillFactor,
+    activity
   });
 
   trackLatLngs = built.trackLatLngs;
