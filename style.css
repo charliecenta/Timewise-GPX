@@ -322,6 +322,16 @@ h1 { margin: 0; font-size: 20px; }
   color: var(--muted);
 }
 
+#summaryCard .summary-formula-heading {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+#summaryCard .summary-formula-text {
+  margin: 0;
+}
+
 /* =========================================================
    CONTROLS
    ========================================================= */
