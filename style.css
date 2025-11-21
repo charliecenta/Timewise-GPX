@@ -509,9 +509,15 @@ button.process {
   display: grid;
   gap: 16px;
   grid-template-columns: 1.2fr 0.8fr;
+  margin-bottom: 16px;
 }
 @media (max-width: 960px) {
   .grid { grid-template-columns: 1fr; }
+}
+
+/* Avoid extra height on side-by-side cards; the grid gap handles spacing */
+.grid > .card {
+  margin-bottom: 0;
 }
 .map {
   height: 420px;
