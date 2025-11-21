@@ -251,12 +251,22 @@ h1 { margin: 0; font-size: 20px; }
 /* =========================================================
     FILE UPLOAD
    ========================================================= */
+.gpx-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.gpx-card .field.file {
+  flex: 1;
+  display: flex;
+}
 .dropzone{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:10px; text-align:center;
   padding:28px; border:2px dashed var(--drop-border); border-radius:14px;
   background: var(--drop-bg); color: var(--drop-text);
   min-height:180px;
+  width: 100%;
   transition: background .15s ease, box-shadow .15s ease, border-color .15s;
 }
 .dropzone svg{ color: var(--drop-muted); }
@@ -446,6 +456,9 @@ h1 { margin: 0; font-size: 20px; }
   align-items: center;
   gap: 8px;
   margin-top: 12px;
+}
+.settings-actions {
+  justify-content: flex-end;
 }
 .actions .spacer { flex: 1; }
 .button {
