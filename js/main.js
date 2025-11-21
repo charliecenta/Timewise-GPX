@@ -12,18 +12,20 @@ import { ACTIVITY_PRESETS } from './config.js';
 
 //
 // ---------- DOM ----------
-const outputEl      = document.getElementById('output');
-const roadbooksEl   = document.getElementById('roadbooks');
-const calcBtn       = document.getElementById('calculateBtn') || document.getElementById('processBtn');
-const clearBtn      = document.getElementById('clearRoadbooksBtn');
-const saveBtn       = document.getElementById('savePlanBtn');
-const loadBtn       = document.getElementById('loadPlanBtn');
-const loadInput     = document.getElementById('loadPlanInput');
-const exportCsvBtn  = document.getElementById('exportCsvBtn');
-const printBtn      = document.getElementById('printBtn');
-const activitySel   = document.getElementById('activityType');
-const showAdvChk    = document.getElementById('showAdvanced');
+const outputEl       = document.getElementById('output');
+const roadbooksEl    = document.getElementById('roadbooks');
+const clearBtn       = document.getElementById('clearRoadbooksBtn');
+const saveBtn        = document.getElementById('savePlanBtn');
+const loadBtn        = document.getElementById('loadPlanBtn');
+const loadInput      = document.getElementById('loadPlanInput');
+const exportCsvBtn   = document.getElementById('exportCsvBtn');
+const printBtn       = document.getElementById('printBtn');
+const activitySel    = document.getElementById('activityType');
+const showAdvChk     = document.getElementById('showAdvanced');
 const languageSelect = document.getElementById('languageSelector');
+const updateSettingsBtn = document.getElementById('updateSettingsBtn');
+const gpxFileInput   = document.getElementById('gpxFile');
+const importRoadbooksChk = document.getElementById('importRoadbooks');
 
 initI18n({ selectorEl: languageSelect });
 
@@ -129,7 +131,7 @@ bindIoAPI({
 
   // called by IO -> we do the real processing here (no globals)
   processGpxText: async (gpxText, importRoadbooks=true) => {
-    await processGpxText(gpxText, importRoadbooks);
+    await processGpxText(gpxText, { importRoadbooks, preserveRoadbooks: false });
   },
 
   addRoadbookIndex: (i, opts) => addRoadbookIndex(i, opts),
@@ -169,11 +171,12 @@ setupThemeToggle({
 setupAdvancedToggle({ checkbox: showAdvChk, settingsCard: document.getElementById('settingsCard') });
 setupGpxDropzone({
   dropEl: document.getElementById('gpxDrop'),
-  fileInput: document.getElementById('gpxFile'),
+  fileInput: gpxFileInput,
   selectBtn: document.getElementById('selectGpxBtn'),
   statusEl: document.getElementById('gpxStatus'),
-  processBtn: calcBtn,
-  clearBtn: document.getElementById('clearRoadbooksBtn')
+  clearBtn: document.getElementById('clearRoadbooksBtn'),
+  onBeforeFileAccept: () => confirmReplaceGpx(),
+  onFileAccepted: (file) => autoProcessGpx(file)
 });
 
 addLanguageChangeListener(() => {
@@ -200,28 +203,30 @@ if (activitySel) {
 }
 
 //
-// ---------- Process / Clear buttons ----------
-if (calcBtn) {
-  calcBtn.addEventListener('click', async () => {
-    const fileInput = document.getElementById('gpxFile');
-    if (!fileInput?.files?.length) { alert(t('gpx.errors.noFile')); return; }
-    const file = fileInput.files[0];
-    lastGpxName = file.name.replace(/\.[^/.]+$/, '');
+// ---------- Processing helpers ----------
+function confirmReplaceGpx() {
+  if (!trackLatLngs.length) return true;
+  return window.confirm(t('gpx.replaceConfirm'));
+}
 
+async function autoProcessGpx(file) {
+  if (!file) return;
+  try {
+    lastGpxName = file.name.replace(/\.[^/.]+$/, '');
     const gpxText = await readFileAsText(file);
     lastGpxText = String(gpxText || '');
-    await processGpxText(lastGpxText, (document.getElementById('importRoadbooks')?.checked ?? true));
-    showMainSections(true);
-    setTimeout(() => {
-      invalidateMapSize();
-      refreshTiles();
-    }, 0);
-  });
+    const importRoadbooks = importRoadbooksChk?.checked ?? true;
+    await processGpxText(lastGpxText, { importRoadbooks, preserveRoadbooks: false });
+  } catch (err) {
+    console.error('Auto GPX processing failed:', err);
+  }
 }
 
 if (clearBtn) {
   clearBtn.addEventListener('click', () => {
     if (!trackLatLngs.length) return;
+    const confirmed = window.confirm(t('map.confirmClearRoadbooks'));
+    if (!confirmed) return;
     clearMarkers();
     // reset state
     roadbookIdx.length = 0;
@@ -239,9 +244,28 @@ if (clearBtn) {
   });
 }
 
+if (updateSettingsBtn) {
+  updateSettingsBtn.addEventListener('click', async () => {
+    if (!lastGpxText) { alert(t('gpx.errors.noFile')); return; }
+    updateSettingsBtn.disabled = true;
+    try {
+      await processGpxText(lastGpxText, { importRoadbooks: false, preserveRoadbooks: true });
+    } finally {
+      updateSettingsBtn.disabled = trackLatLngs.length === 0;
+    }
+  });
+}
+
 //
 // ---------- Core processor (was a global; now lives here) ----------
-async function processGpxText(gpxText, importRoadbooks = true) {
+async function processGpxText(gpxText, opts = {}) {
+  const options = typeof opts === 'boolean' ? { importRoadbooks: opts } : (opts || {});
+  const { importRoadbooks = true, preserveRoadbooks = false } = options;
+
+  const preserved = (preserveRoadbooks && trackLatLngs.length)
+    ? snapshotRoadbookState()
+    : null;
+
   // read settings from DOM
   const spacingM      = toPosNum(document.getElementById('spacingM')?.value, 5);
   const smoothWinM    = toPosNum(document.getElementById('smoothWinM')?.value, 15);
@@ -273,11 +297,21 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   drawPolyline(trackLatLngs);
   clearMarkers();
 
-  // import roadbooks if requested
+  if (!preserved) {
+    legLabels.clear();
+    legStopsMin.clear();
+    legCondPct.clear();
+    legCritical.clear();
+    legObservations.clear();
+  }
+
+  // rebuild roadbooks
   roadbookIdx.length = 0;
   roadbookLabels.clear();
 
-  if (importRoadbooks) {
+  if (preserved) {
+    restoreRoadbookState(preserved);
+  } else if (importRoadbooks) {
     const wpts = parseGPXRoadbooks(gpxText);
     // snap unique labelled points to nearest resampled index
     const seen = new Set();
@@ -303,20 +337,84 @@ async function processGpxText(gpxText, importRoadbooks = true) {
     refreshTiles();
     refitToTrack([24, 24]);
   }, 0);
-  
+
   window.addEventListener('resize', () => {
     invalidateMapSize();
     refitToTrack([24, 24]);
   }, { passive: true });
 
-
-
   if (clearBtn) {
     clearBtn.disabled = trackLatLngs.length === 0;
+  }
+  if (updateSettingsBtn) {
+    updateSettingsBtn.disabled = trackLatLngs.length === 0;
   }
   exportCsvBtn.disabled = false;
   saveBtn && (saveBtn.disabled = false);
   setTimeout(() => { printBtn && (printBtn.disabled = false); }, 0);
+}
+
+function snapshotRoadbookState() {
+  const markerMap = new Map(getMarkers().map(m => [m.__idx, m]));
+  return {
+    trackLength: trackLatLngs.length,
+    points: roadbookIdx.map(idx => ({
+      idx,
+      latlng: trackLatLngs[idx],
+      label: roadbookLabels.get(idx) || '',
+      locked: markerMap.get(idx)?.__locked ?? (idx === 0 || idx === trackLatLngs.length - 1)
+    })),
+    legLabels: new Map(legLabels),
+    legStopsMin: new Map(legStopsMin),
+    legCondPct: new Map(legCondPct),
+    legCritical: new Map(legCritical),
+    legObservations: new Map(legObservations)
+  };
+}
+
+function restoreRoadbookState(snapshot) {
+  const mapping = new Map();
+  const seen = new Set();
+  const newTrack = trackLatLngs;
+  const oldTrackLength = snapshot.trackLength;
+
+  snapshot.points.forEach((pt) => {
+    let targetIdx;
+    if (pt.locked && pt.idx === 0) targetIdx = 0;
+    else if (pt.locked && pt.idx === oldTrackLength - 1) targetIdx = newTrack.length - 1;
+    else targetIdx = nearestIndexOnTrack(pt.latlng, newTrack);
+
+    mapping.set(pt.idx, targetIdx);
+    if (seen.has(targetIdx)) return;
+    seen.add(targetIdx);
+
+    const locked = pt.locked && (targetIdx === 0 || targetIdx === newTrack.length - 1);
+    const label = pt.label || (targetIdx === 0 ? t('map.start') : targetIdx === newTrack.length - 1 ? t('map.finish') : '');
+    addRoadbookIndex(targetIdx, { noRender: true, label, locked });
+  });
+
+  if (!roadbookIdx.includes(0)) addRoadbookIndex(0, { noRender: true, label: t('map.start'), locked: true });
+  if (!roadbookIdx.includes(newTrack.length - 1)) addRoadbookIndex(newTrack.length - 1, { noRender: true, label: t('map.finish'), locked: true });
+
+  const remapMap = (source, target) => {
+    target.clear();
+    for (const [key, val] of source.entries()) {
+      const [aStr, bStr] = key.split('|');
+      const aOld = Number(aStr);
+      const bOld = Number(bStr);
+      if (!Number.isFinite(aOld) || !Number.isFinite(bOld)) continue;
+      const aNew = mapping.get(aOld);
+      const bNew = mapping.get(bOld);
+      if (aNew == null || bNew == null || aNew === bNew) continue;
+      target.set(`${aNew}|${bNew}`, val);
+    }
+  };
+
+  remapMap(snapshot.legLabels, legLabels);
+  remapMap(snapshot.legStopsMin, legStopsMin);
+  remapMap(snapshot.legCondPct, legCondPct);
+  remapMap(snapshot.legCritical, legCritical);
+  remapMap(snapshot.legObservations, legObservations);
 }
 
 window.addEventListener('resize', () => {

@@ -46,9 +46,8 @@ export function setupAdvancedToggle({ checkbox, settingsCard }) {
 
 /**
  * Drag & drop + chooser UI for GPX file.
- * This does *not* parse files; it only updates the UI and enables the Process button.
  */
-export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, processBtn, clearBtn }) {
+export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, clearBtn, onBeforeFileAccept, onFileAccepted }) {
   if (!dropEl || !fileInput) return;
 
   const on = (el, evts, fn) => evts.forEach(evt => el.addEventListener(evt, fn));
@@ -68,14 +67,12 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
       dropEl.classList.add('uploaded');
       if (statusEl) statusEl.innerHTML = t('gpx.ready', { name: state.file.name, size: kib(state.file.size) });
       if (selectBtn) selectBtn.textContent = t('buttons.changeFile');
-      if (processBtn) processBtn.disabled = false;
     } else if (state.mode === 'error') {
       dropEl.classList.remove('uploaded');
       dropEl.classList.add('error');
       const message = state.error ? t(state.error.key, state.error.args) : '';
       if (statusEl) statusEl.innerHTML = t('gpx.error', { message });
       if (selectBtn) selectBtn.textContent = t('buttons.selectFile');
-      if (processBtn) processBtn.disabled = true;
     } else {
       dropEl.classList.remove('uploaded', 'error');
       if (statusEl) statusEl.textContent = '';
@@ -102,8 +99,18 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
     state.file = null;
     state.error = null;
     renderState();
-    // if you want to disable Process until next selection, uncomment:
-    // if (processBtn) processBtn.disabled = true;
+  };
+
+  const restorePreviousFile = () => {
+    if (state.file) {
+      const dt = new DataTransfer();
+      dt.items.add(state.file);
+      fileInput.files = dt.files;
+      renderState();
+      return;
+    }
+    fileInput.value = '';
+    clearState();
   };
 
   renderState();
@@ -130,14 +137,20 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
   });
 
   // Input change → status update
-  fileInput.addEventListener('change', () => {
+  fileInput.addEventListener('change', async () => {
     const f = fileInput.files?.[0];
     if (!f) { clearState(); return; }
     if (!/\.gpx$/i.test(f.name) && f.type !== 'application/gpx+xml') {
       setErrorKey('gpx.errors.selectWrongType');
       return;
     }
+
+    if (onBeforeFileAccept) {
+      const allowed = await onBeforeFileAccept({ newFile: f, currentFile: state.file });
+      if (!allowed) { restorePreviousFile(); return; }
+    }
     setReady(f);
+    if (onFileAccepted) onFileAccepted(f);
   });
 
   clearBtn?.addEventListener('click', clearState);

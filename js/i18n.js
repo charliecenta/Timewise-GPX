@@ -21,6 +21,7 @@ const translations = {
       exportCsv: 'Export CSV',
       changeFile: 'Change File',
       selectFile: 'Select File',
+      updateSettings: 'Update settings',
       themeToggle: 'Toggle theme',
       editor: {
         save: 'Save',
@@ -35,6 +36,7 @@ const translations = {
       dropHint: 'Drag & drop a GPX file here, or',
       ready: '<span class="ok">Ready:</span> {{name}} · {{size}}',
       error: '<span class="err">Error:</span> {{message}}',
+      replaceConfirm: 'A GPX file is already loaded. Uploading a new file will discard your current edits. Continue?',
       errors: {
         noFile: 'Please upload a GPX file.',
         dropWrongType: 'Please drop a .gpx file',
@@ -71,6 +73,7 @@ const translations = {
       autoPrefix: 'WP',
       waypointName: 'Waypoint name',
       confirmDelete: 'Are you sure you want to remove this waypoint?',
+      confirmClearRoadbooks: 'This will remove all waypoints except Start and Finish. Continue?',
       editor: {
         heading: 'Waypoint name',
       },
@@ -149,6 +152,7 @@ const translations = {
       exportCsv: 'Exportar CSV',
       changeFile: 'Cambiar archivo',
       selectFile: 'Seleccionar archivo',
+      updateSettings: 'Actualizar ajustes',
       themeToggle: 'Cambiar tema',
       editor: {
         save: 'Guardar',
@@ -163,6 +167,7 @@ const translations = {
       dropHint: 'Arrastra y suelta un archivo GPX aquí, o',
       ready: '<span class="ok">Listo:</span> {{name}} · {{size}}',
       error: '<span class="err">Error:</span> {{message}}',
+      replaceConfirm: 'Ya hay un archivo GPX cargado. Subir uno nuevo eliminará tu trabajo actual. ¿Quieres continuar?',
       errors: {
         noFile: 'Por favor, sube un archivo GPX.',
         dropWrongType: 'Por favor, suelta un archivo .gpx',
@@ -199,6 +204,7 @@ const translations = {
       autoPrefix: 'WP',
       waypointName: 'Nombre del punto',
       confirmDelete: '¿Seguro que quieres eliminar este punto?',
+      confirmClearRoadbooks: 'Se eliminarán todos los puntos excepto el inicio y el final. ¿Quieres continuar?',
       editor: {
         heading: 'Nombre del punto',
       },
@@ -277,6 +283,7 @@ const translations = {
       exportCsv: 'Exporta CSV',
       changeFile: 'Canvia el fitxer',
       selectFile: 'Selecciona el fitxer',
+      updateSettings: 'Actualitza la configuració',
       themeToggle: 'Canvia el tema',
       editor: {
         save: 'Desa',
@@ -291,6 +298,7 @@ const translations = {
       dropHint: 'Arrossega i deixa anar un fitxer GPX aquí, o',
       ready: '<span class="ok">Preparat:</span> {{name}} · {{size}}',
       error: '<span class="err">Error:</span> {{message}}',
+      replaceConfirm: "Ja hi ha un fitxer GPX carregat. Pujar-ne un de nou eliminarà la feina actual. Vols continuar?",
       errors: {
         noFile: 'Si us plau, puja un fitxer GPX.',
         dropWrongType: 'Si us plau, deixa anar un fitxer .gpx',
@@ -327,6 +335,7 @@ const translations = {
       autoPrefix: 'WP',
       waypointName: 'Nom del punt',
       confirmDelete: 'Segur que vols eliminar aquest punt?',
+      confirmClearRoadbooks: 'S’eliminaran tots els punts excepte l’inici i el final. Vols continuar?',
       editor: {
         heading: 'Nom del punt',
       },
