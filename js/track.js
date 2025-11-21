@@ -125,7 +125,8 @@ export function nearestIndexOnTrack([la, lo], latlngs) {
 export function buildTrackFromSegments(segments, settings) {
   const {
     spacingM, smoothWinM, elevDeadbandM,
-    speedFlatKmh, speedVertMh, downhillFactor
+    speedFlatKmh, speedVertMh, downhillFactor,
+    activity = 'hike'
   } = settings;
 
   let trackLatLngs = [];
@@ -173,7 +174,9 @@ export function buildTrackFromSegments(segments, settings) {
       const vMag = ascentM > 0 ? ascentM : descentM;
       const v = vMag > 0 ? (vMag / speedVertMh) : 0;
 
-      let segTimeH = Math.max(h, v) + 0.5 * Math.min(h, v);
+      let segTimeH = activity === 'snowshoe'
+        ? (h + v)
+        : (Math.max(h, v) + 0.5 * Math.min(h, v));
       if (descentM > 0 && descentM >= ascentM) segTimeH *= downhillFactor;
 
       totalDistKm   += distKm;

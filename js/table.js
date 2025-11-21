@@ -203,7 +203,8 @@ export function updateSummaryCard() {
     desM:     cumDescentM[cumDescentM.length - 1] ?? 0,
   };
   const roll = computeTimeRollups();
-  const formulaText = t('summary.timeFormula');
+  const activity = API.getActivityType ? API.getActivityType() : 'hike';
+  const formulaText = t(`summary.formulas.${activity}`, {}, '');
   const formulaHeading = t('summary.formulaHeading');
   const formulaHtml = formulaText ? `
     <div class="summary-formula">
