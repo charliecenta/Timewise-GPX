@@ -158,7 +158,7 @@ export function setupGpxDropzone({ dropEl, fileInput, selectBtn, statusEl, proce
 
 /** Toggle the visibility of the main sections (map, summary, table). */
 export function showMainSections(show) {
-  const ids = ['mapCard', 'summaryCard', 'roadbooksCard'];
+  const ids = ['summaryCard', 'roadbooksCard', 'elevationCard'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
