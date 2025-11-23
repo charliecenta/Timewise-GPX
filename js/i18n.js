@@ -15,6 +15,7 @@ const translations = {
     buttons: {
       save: 'Save',
       load: 'Load',
+      donate: '❤️ Donate',
       processGpx: 'Process GPX',
       clearRoadbooks: 'Clear roadbooks',
       print: 'Print',
@@ -149,6 +150,7 @@ const translations = {
     buttons: {
       save: 'Guardar',
       load: 'Cargar',
+      donate: '❤️ Donar',
       processGpx: 'Procesar GPX',
       clearRoadbooks: 'Limpiar roadbooks',
       print: 'Imprimir',
@@ -283,6 +285,7 @@ const translations = {
     buttons: {
       save: 'Desa',
       load: 'Carrega',
+      donate: '❤️ Donar',
       processGpx: 'Processa GPX',
       clearRoadbooks: 'Neteja els roadbooks',
       print: 'Imprimeix',

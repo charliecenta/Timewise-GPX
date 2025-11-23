@@ -471,6 +471,7 @@ h1 { margin: 0; font-size: 20px; }
   cursor: pointer;
   transition: background .2s ease, border-color .2s ease;
   font-size: 0.875rem;
+  text-decoration: none;
 }
 button {
   appearance: none;
