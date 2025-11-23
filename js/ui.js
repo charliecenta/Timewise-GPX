@@ -8,22 +8,26 @@ export function setupThemeToggle(opts = {}) {
   const { toggleBtn, logoEl, lightLogoSrc, darkLogoSrc, storageKey = 'gpxplanner-theme' } = opts;
   const root = document.documentElement;
 
+  const applyTheme = (theme) => {
+    const safeTheme = theme === 'dark' ? 'dark' : 'light';
+    root.setAttribute('data-theme', safeTheme);
+    root.classList.toggle('dark', safeTheme === 'dark');
+    swapLogo(safeTheme);
+  };
+
   // initialise from storage or system
   const stored = localStorage.getItem(storageKey);
   if (stored === 'dark' || stored === 'light') {
-    root.setAttribute('data-theme', stored);
+    applyTheme(stored);
   } else {
-    // leave as-is (CSS may read prefers-color-scheme)
+    applyTheme(root.getAttribute('data-theme') || 'light');
   }
-  // set initial logo
-  swapLogo(root.getAttribute('data-theme') || 'light');
 
   toggleBtn?.addEventListener('click', () => {
     const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     const next = current === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
+    applyTheme(next);
     localStorage.setItem(storageKey, next);
-    swapLogo(next);
   });
 
   function swapLogo(theme) {
