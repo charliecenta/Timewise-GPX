@@ -179,6 +179,21 @@ setupGpxDropzone({
   onFileReady: (file) => handleNewGpxFile(file)
 });
 
+document.getElementById('openGpxUploader')?.addEventListener('click', () => {
+  document.getElementById('selectGpxBtn')?.click();
+});
+
+const tabButtons = Array.from(document.querySelectorAll('[data-panel-target]'));
+if (tabButtons.length) {
+  tabButtons.forEach(btn => btn.addEventListener('click', () => {
+    const target = btn.dataset.panelTarget;
+    tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.drawer-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === target);
+    });
+  }));
+}
+
 addLanguageChangeListener(() => {
   if (trackLatLngs.length > 0) {
     if (roadbookIdx.includes(0)) {

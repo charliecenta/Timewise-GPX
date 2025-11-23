@@ -116,6 +116,7 @@ body {
   color: var(--fg);
   background: var(--bg);
   transition: background 0.3s ease, color 0.3s ease;
+  overflow: hidden;
 }
 
 .is-hidden { display: none !important; }
@@ -125,6 +126,86 @@ body {
   width: 92vw;
   margin: 0 auto;
   padding: 16px;
+}
+
+/* =========================================================
+   FULL-SCREEN WORKSPACE
+   ========================================================= */
+.app-shell {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.map-stage {
+  position: absolute;
+  inset: 0;
+  background: var(--map-bg);
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.header-overlay {
+  inset: 12px 12px auto 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.toolbar-overlay {
+  inset: 92px 12px auto 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.side-overlay {
+  top: 170px;
+  bottom: 180px;
+  left: 12px;
+  width: 380px;
+  pointer-events: none;
+}
+
+.bottom-overlay {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  pointer-events: none;
+}
+
+.panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 100%;
+  overflow-y: auto;
+  pointer-events: auto;
+  padding-right: 4px;
+}
+
+.glass {
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  backdrop-filter: blur(12px);
+  border-color: color-mix(in srgb, var(--card-border) 80%, transparent);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+@media (max-width: 900px) {
+  .side-overlay { width: min(94vw, 420px); }
+  .toolbar { flex-wrap: wrap; justify-content: flex-start; }
 }
 
 /* =========================================================
@@ -175,11 +256,82 @@ header {
   justify-content: space-between;
   gap: 12px;
 }
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--card-bg) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-border) 70%, transparent);
+  border-radius: 14px;
+  padding: 8px 12px;
+  pointer-events: auto;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.creator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--btn-bg) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--btn-border) 60%, transparent);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.header-actions {
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--card-bg) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-border) 70%, transparent);
+  border-radius: 14px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
 .header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+.toolbar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-border) 80%, transparent);
+  border-radius: 14px;
+  width: min(96vw, 1120px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  appearance: none;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--fg);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+.tool-btn:hover { background: var(--btn-hover); transform: translateY(-1px); }
+.tool-btn:active { transform: translateY(0); }
+.tool-btn.ghost {
+  background: transparent;
+  border-style: dashed;
 }
 .language-switcher {
   display: flex;
@@ -319,12 +471,67 @@ h1 { margin: 0; font-size: 20px; }
   margin: 0 0 10px;
   font-size: 16px;
 }
+.panel-stack .card { margin: 0; }
 .card-header {
   display:flex;
   flex-direction: row;
   justify-content: space-between;
   margin-bottom: 10px;
 }
+
+.drawer {
+  pointer-events: auto;
+  margin: 0;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.drawer-tabs {
+  display: inline-flex;
+  gap: 8px;
+  background: var(--btn-hover);
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.tab-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--muted);
+  transition: background .2s ease, color .2s ease;
+}
+.tab-btn.active {
+  background: var(--card-bg);
+  color: var(--fg);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+}
+
+.drawer-body { margin-top: 12px; }
+
+.drawer-panel { display: none; }
+.drawer-panel.active { display: block; }
+
+.elevation-placeholder {
+  background: var(--table-head-bg);
+  border: 1px dashed var(--table-border);
+  border-radius: 10px;
+  padding: 16px;
+  color: var(--muted);
+}
+.elevation-placeholder h3 { margin-top: 0; margin-bottom: 4px; }
 
 #summaryCard .summary-formula {
   margin: 0.75rem 0 0;
