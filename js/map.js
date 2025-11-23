@@ -26,6 +26,9 @@ const API = {
 
   // confirming delete (host may use a custom UI later)
   confirmDelete: (msg) => window.confirm(msg),
+
+  // optional click handler for custom routing modes
+  onMapClick: null,
 };
 
 /** Call this once from script.js to wire shared state & helpers. */
@@ -55,8 +58,11 @@ export function ensureMap() {
     }
   ).addTo(map);
 
+  map.setView([45.0, 7.0], 6);
+
   // One left click on the map → create waypoint at nearest track point and open editor
   map.on('click', (e) => {
+    if (typeof API.onMapClick === 'function' && API.onMapClick(e)) return;
     const track = API.getTrackLatLngs();
     if (!track || !track.length) return;
     const idx = API.nearestIndexOnTrack([e.latlng.lat, e.latlng.lng], track);
@@ -82,6 +88,13 @@ export function drawPolyline(latlngs) {
     if (map._loaded) doFit();
     else map.once('load', doFit);
   } catch {}
+}
+
+export function clearPolyline() {
+  if (polyline) {
+    polyline.remove();
+    polyline = null;
+  }
 }
 
 

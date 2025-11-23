@@ -3,7 +3,7 @@
 import { setupThemeToggle, setupAdvancedToggle, setupGpxDropzone, showMainSections } from './ui.js';
 import { bindIoAPI, readFileAsText, wireSaveLoadExport, restorePlanFromJSON } from './io.js';
 import { bindTableAPI, renderRoadbooksTable, updateSummaryCard, wireTableFades, exportRoadbooksCsv } from './table.js';
-import { bindMapAPI, ensureMap, drawPolyline, clearMarkers, addRoadbookIndex, refreshTiles, invalidateMapSize, refitToTrack, ensureLabelPopup, getMarkers } from './map.js';
+import { bindMapAPI, ensureMap, drawPolyline, clearMarkers, addRoadbookIndex, refreshTiles, invalidateMapSize, refitToTrack, ensureLabelPopup, getMarkers, clearPolyline } from './map.js';
 import { parseGPXToSegments, parseGPXRoadbooks } from './gpx.js';
 import { buildTrackFromSegments, nearestIndexOnTrack } from './track.js';
 import { toPosNum, toNonNegNum, escapeHtml } from './utils.js';
@@ -24,6 +24,14 @@ const activitySel   = document.getElementById('activityType');
 const showAdvChk    = document.getElementById('showAdvanced');
 const languageSelect = document.getElementById('languageSelector');
 const updateSettingsBtn = document.getElementById('updateSettingsBtn');
+const elevationProfileEl = document.getElementById('elevationProfile');
+const quickUploadBtn = document.getElementById('quickUploadBtn');
+const routeModeButtons = document.querySelectorAll('[data-route-mode]');
+const undoPointBtn = document.getElementById('undoPointBtn');
+const startFreshBtn = document.getElementById('startFreshBtn');
+const tabButtons = document.querySelectorAll('[data-panel-target]');
+const tabPanels = document.querySelectorAll('.info-panel');
+const drawer = document.getElementById('infoDrawer');
 
 initI18n({ selectorEl: languageSelect });
 
@@ -41,9 +49,22 @@ function applyActivityPreset(kind) {
   setVal('downhillFactor', preset.dhf);
 }
 
+function readSettingsFromDom() {
+  return {
+    spacingM:      toPosNum(document.getElementById('spacingM')?.value, 5),
+    smoothWinM:    toPosNum(document.getElementById('smoothWinM')?.value, 15),
+    elevDeadbandM: toNonNegNum(document.getElementById('elevDeadbandM')?.value, 2),
+    speedFlatKmh:  toPosNum(document.getElementById('speedFlat')?.value, 4),
+    speedVertMh:   toPosNum(document.getElementById('speedVert')?.value, 300),
+    downhillFactor: toPosNum(document.getElementById('downhillFactor')?.value, 0.6667),
+    activity: activitySel?.value || 'hike'
+  };
+}
+
 //
 // ---------- App state (single source of truth) ----------
 let trackLatLngs   = [];  // [[lat, lon], ...] resampled
+let trackElevationM = [];
 let trackBreakIdx  = [];
 let cumDistKm      = [0];
 let cumAscentM     = [0];
@@ -60,6 +81,10 @@ let legObservations  = new Map();     // "a|b" -> string
 
 let lastGpxText = '';
 let lastGpxName = '';
+let lastSource = 'gpx';
+let manualSegments = [];
+let draftPoints = [];
+let routeMode = 'manual';
 
 const getImportRoadbooksPref = () => (document.getElementById('importRoadbooks')?.checked ?? true);
 const hasActivePlan = () => trackLatLngs.length > 0 || roadbookIdx.length > 0;
@@ -116,7 +141,8 @@ bindMapAPI({
   getWaypointName,
   setWaypointName,
   setRoadbookLabel,
-  confirmDelete: (msg) => window.confirm(msg)
+  confirmDelete: (msg) => window.confirm(msg),
+  onMapClick: (e) => handleMapClickForRouting(e)
 });
 
 // IO needs hooks into our processing + state getters/setters
@@ -203,6 +229,9 @@ async function handleNewGpxFile(file) {
   lastGpxName = file?.name ? file.name.replace(/\.[^/.]+$/, '') : '';
   const gpxText = await readFileAsText(file);
   lastGpxText = String(gpxText || '');
+  lastSource = 'gpx';
+  manualSegments = [];
+  draftPoints = [];
   await processGpxText(lastGpxText, getImportRoadbooksPref());
 }
 
@@ -215,6 +244,10 @@ if (activitySel) {
 }
 
 updateSettingsBtn?.addEventListener('click', async () => {
+  if (lastSource === 'manual' && manualSegments.length) {
+    rebuildManualRoute();
+    return;
+  }
   if (!lastGpxText) { alert(t('settings.errors.noGpxLoaded')); return; }
   await processGpxText(lastGpxText, false, { preserveRoadbooks: true });
 });
@@ -242,6 +275,43 @@ if (clearBtn) {
   });
 }
 
+quickUploadBtn?.addEventListener('click', () => {
+  document.getElementById('selectGpxBtn')?.click();
+});
+
+document.getElementById('selectGpxBtnMirror')?.addEventListener('click', () => {
+  document.getElementById('selectGpxBtn')?.click();
+});
+
+routeModeButtons.forEach(btn => {
+  btn.addEventListener('click', () => setRouteMode(btn.dataset.routeMode));
+});
+
+undoPointBtn?.addEventListener('click', () => {
+  draftPoints.pop();
+  if (draftPoints.length >= 2) {
+    manualSegments = [draftPoints.map(p => ({ ...p }))];
+    rebuildManualRoute();
+  } else {
+    startFreshManualRoute();
+  }
+});
+
+startFreshBtn?.addEventListener('click', () => {
+  setRouteMode('manual');
+  startFreshManualRoute();
+});
+
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.panelTarget;
+    tabPanels.forEach(panel => panel.classList.toggle('active', panel.id === target));
+    tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+    drawer?.classList.add('open');
+    invalidateMapSize();
+  });
+});
+
 function snapshotRoadbooks() {
   const markerMap = new Map(getMarkers().map(m => [m.__idx, m]));
   const waypoints = roadbookIdx.map(idx => ({
@@ -263,6 +333,56 @@ function snapshotRoadbooks() {
   }
 
   return { waypoints, legs };
+}
+
+function setRouteMode(mode) {
+  routeMode = mode;
+  routeModeButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.routeMode === mode);
+  });
+}
+
+function startFreshManualRoute() {
+  draftPoints = [];
+  manualSegments = [];
+  lastSource = 'manual';
+  lastGpxText = '';
+  lastGpxName = '';
+  trackLatLngs = [];
+  trackElevationM = [];
+  trackBreakIdx = [];
+  cumDistKm = [0];
+  cumAscentM = [0];
+  cumDescentM = [0];
+  cumTimeH = [0];
+  clearPolyline();
+  clearMarkers();
+  resetRoadbooks();
+  renderRoadbooksTable();
+  updateSummaryCard();
+  renderElevationProfile();
+  showMainSections(false);
+}
+
+function rebuildManualRoute() {
+  if (!manualSegments.length) {
+    showMainSections(false);
+    renderElevationProfile();
+    return;
+  }
+  const built = buildTrackFromSegments(manualSegments, readSettingsFromDom());
+  applyBuiltTrack(built);
+  lastSource = 'manual';
+}
+
+function handleMapClickForRouting(e) {
+  if (routeMode !== 'manual' && routeMode !== 'autoroute') return false;
+  draftPoints.push({ lat: e.latlng.lat, lon: e.latlng.lng, ele: null });
+  if (draftPoints.length >= 2) {
+    manualSegments = [draftPoints.map(p => ({ ...p }))];
+    rebuildManualRoute();
+  }
+  return true;
 }
 
 function setIfDefined(map, key, value) {
@@ -301,43 +421,7 @@ function restoreRoadbooks(snapshot) {
   }
 }
 
-//
-// ---------- Core processor (was a global; now lives here) ----------
-async function processGpxText(gpxText, importRoadbooks = true, options = {}) {
-  const { preserveRoadbooks = false } = options;
-  const preserved = preserveRoadbooks ? snapshotRoadbooks() : null;
-  // read settings from DOM
-  const spacingM      = toPosNum(document.getElementById('spacingM')?.value, 5);
-  const smoothWinM    = toPosNum(document.getElementById('smoothWinM')?.value, 15);
-  const elevDeadbandM = toNonNegNum(document.getElementById('elevDeadbandM')?.value, 2);
-  const speedFlatKmh  = toPosNum(document.getElementById('speedFlat')?.value, 4);
-  const speedVertMh   = toPosNum(document.getElementById('speedVert')?.value, 300);
-  const downhillFactor = toPosNum(document.getElementById('downhillFactor')?.value, 0.6667);
-  const activity       = activitySel?.value || 'hike';
-
-  const segments = parseGPXToSegments(gpxText);
-  if (!segments.length) { alert(t('gpx.errors.noSegments')); return; }
-
-  // build track + cumulatives
-  const built = buildTrackFromSegments(segments, {
-    spacingM, smoothWinM, elevDeadbandM,
-    speedFlatKmh, speedVertMh, downhillFactor,
-    activity
-  });
-
-  trackLatLngs = built.trackLatLngs;
-  trackBreakIdx = built.breakIdx;
-  cumDistKm   = built.cumDistKm;
-  cumAscentM  = built.cumAscentM;
-  cumDescentM = built.cumDescentM;
-  cumTimeH    = built.cumTimeH;
-
-  // map
-  ensureMap();
-  drawPolyline(trackLatLngs);
-  clearMarkers();
-
-  // import roadbooks if requested
+function resetRoadbooks() {
   roadbookIdx.length = 0;
   roadbookLabels.clear();
   legLabels.clear();
@@ -345,12 +429,83 @@ async function processGpxText(gpxText, importRoadbooks = true, options = {}) {
   legCondPct.clear();
   legCritical.clear();
   legObservations.clear();
+}
+
+function renderElevationProfile() {
+  if (!elevationProfileEl) return;
+  if (!trackLatLngs.length || !trackElevationM.length) {
+    elevationProfileEl.innerHTML = `<p class="empty-profile">${t('gpx.dropHint')}</p>`;
+    return;
+  }
+
+  const totalDist = cumDistKm[cumDistKm.length - 1] ?? 0;
+  const distanceLabel = t('map.distance') || 'Distance';
+  const elevLabel = t('map.elevation') || 'Elevation';
+  const width = 720;
+  const height = 180;
+  const points = trackElevationM.map((ele, idx) => ({
+    x: (totalDist ? (cumDistKm[idx] / totalDist) : 0) * width,
+    y: ele ?? 0
+  }));
+
+  const allElev = points.map(p => p.y);
+  const minEle = Math.min(...allElev);
+  const maxEle = Math.max(...allElev);
+  const span = Math.max(1, maxEle - minEle);
+
+  const areaPath = ['M 0', height, 'L'];
+  points.forEach((p, i) => {
+    const y = height - ((p.y - minEle) / span) * height;
+    const x = Math.min(width, Math.max(0, p.x));
+    areaPath.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    if (i < points.length - 1) areaPath.push('L');
+  });
+  areaPath.push('L', width, height, 'Z');
+
+  const profile = `
+    <svg class="elevation-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Elevation profile">
+      <path d="${areaPath.join(' ')}" fill="url(#grad)" stroke="var(--accent)" stroke-width="2" />
+      <defs>
+        <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.35"></stop>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05"></stop>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="profile-meta">
+      <div><strong>${t('map.summary')}</strong></div>
+      <div>${distanceLabel}: ${cumDistKm[cumDistKm.length - 1].toFixed(2)} km</div>
+      <div>${elevLabel}: ${Math.round(minEle)} m → ${Math.round(maxEle)} m</div>
+    </div>`;
+
+  elevationProfileEl.innerHTML = profile;
+}
+
+function applyBuiltTrack(built, { importRoadbooks = false, preservedRoadbooks = null, gpxText = null } = {}) {
+  trackLatLngs = built.trackLatLngs || [];
+  trackElevationM = built.trackElevationM || [];
+  trackBreakIdx = built.breakIdx || [];
+  cumDistKm   = built.cumDistKm || [0];
+  cumAscentM  = built.cumAscentM || [0];
+  cumDescentM = built.cumDescentM || [0];
+  cumTimeH    = built.cumTimeH || [0];
+
+  ensureMap();
+  if (trackLatLngs.length > 1) {
+    drawPolyline(trackLatLngs);
+  } else {
+    clearPolyline();
+  }
+
+  clearMarkers();
+  resetRoadbooks();
+
+  const preserved = preservedRoadbooks || null;
 
   if (preserved) {
     restoreRoadbooks(preserved);
-  } else if (importRoadbooks) {
+  } else if (importRoadbooks && gpxText) {
     const wpts = parseGPXRoadbooks(gpxText);
-    // snap unique labelled points to nearest resampled index
     const seen = new Set();
     for (const w of wpts) {
       const idx = nearestIndexOnTrack([w.lat, w.lon], trackLatLngs);
@@ -360,34 +515,46 @@ async function processGpxText(gpxText, importRoadbooks = true, options = {}) {
     }
   }
 
-  // always ensure start/finish
-  addRoadbookIndex(0, { noRender: true, label: t('map.start'), locked: true });
-  addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: t('map.finish'), locked: true });
+  if (trackLatLngs.length) {
+    addRoadbookIndex(0, { noRender: true, label: t('map.start'), locked: true });
+    addRoadbookIndex(trackLatLngs.length - 1, { noRender: true, label: t('map.finish'), locked: true });
+  }
 
   renderRoadbooksTable();
   updateSummaryCard();
+  renderElevationProfile();
 
-  showMainSections(true);
+  const hasTrack = trackLatLngs.length > 1;
+  showMainSections(hasTrack);
+
+  if (clearBtn) clearBtn.disabled = !hasTrack;
+  if (exportCsvBtn) exportCsvBtn.disabled = !hasTrack;
+  if (saveBtn) saveBtn.disabled = !hasTrack;
+  setTimeout(() => { if (printBtn) printBtn.disabled = !hasTrack; }, 0);
 
   setTimeout(() => {
     invalidateMapSize();
     refreshTiles();
-    refitToTrack([24, 24]);
+    if (hasTrack) refitToTrack([24, 24]);
   }, 0);
-  
+}
+
+//
+// ---------- Core processor (was a global; now lives here) ----------
+async function processGpxText(gpxText, importRoadbooks = true, options = {}) {
+  const { preserveRoadbooks = false } = options;
+  const preserved = preserveRoadbooks ? snapshotRoadbooks() : null;
+  const segments = parseGPXToSegments(gpxText);
+  if (!segments.length) { alert(t('gpx.errors.noSegments')); return; }
+
+  // build track + cumulatives
+  const built = buildTrackFromSegments(segments, readSettingsFromDom());
+  applyBuiltTrack(built, { importRoadbooks, preservedRoadbooks: preserved, gpxText });
+
   window.addEventListener('resize', () => {
     invalidateMapSize();
     refitToTrack([24, 24]);
   }, { passive: true });
-
-
-
-  if (clearBtn) {
-    clearBtn.disabled = trackLatLngs.length === 0;
-  }
-  exportCsvBtn.disabled = false;
-  saveBtn && (saveBtn.disabled = false);
-  setTimeout(() => { printBtn && (printBtn.disabled = false); }, 0);
 }
 
 window.addEventListener('resize', () => {
@@ -411,3 +578,12 @@ printBtn?.addEventListener('click', () => window.print());
 
 // fades need to be attached once
 wireTableFades();
+
+setRouteMode(routeMode);
+ensureMap();
+renderElevationProfile();
+if (tabButtons.length) {
+  tabButtons[0].classList.add('active');
+  const target = tabButtons[0].dataset.panelTarget;
+  tabPanels.forEach(panel => panel.classList.toggle('active', panel.id === target));
+}

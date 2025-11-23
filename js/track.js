@@ -130,6 +130,7 @@ export function buildTrackFromSegments(segments, settings) {
   } = settings;
 
   let trackLatLngs = [];
+  let trackElevationM = [];
   const breakIdx = [];
   const cumDistKm = [0], cumAscentM = [0], cumDescentM = [0], cumTimeH = [0];
 
@@ -156,10 +157,17 @@ export function buildTrackFromSegments(segments, settings) {
       cumAscentM.push(cumAscentM[cumAscentM.length - 1]);
       cumDescentM.push(cumDescentM[cumDescentM.length - 1]);
       cumTimeH.push(cumTimeH[cumTimeH.length - 1]);
+      trackElevationM.push(trackElevationM[trackElevationM.length - 1] ?? 0);
     }
 
     const latlngs = resampled.map(p => [p.lat, p.lon]);
+    const elevSeries = elevFiltered.map((v, idx) => {
+      if (v != null) return v;
+      if (idx > 0 && elevFiltered[idx - 1] != null) return elevFiltered[idx - 1];
+      return 0;
+    });
     trackLatLngs = trackLatLngs.concat(latlngs);
+    trackElevationM = trackElevationM.concat(elevSeries);
 
     for (let i = 1; i < resampled.length; i++) {
       const p1 = resampled[i - 1];
@@ -192,7 +200,7 @@ export function buildTrackFromSegments(segments, settings) {
   }
 
   return {
-    trackLatLngs, breakIdx,
+    trackLatLngs, trackElevationM, breakIdx,
     cumDistKm, cumAscentM, cumDescentM, cumTimeH,
     totals: { distKm: totalDistKm, ascentM: totalAscentM, descentM: totalDescentM, timeHrs: totalTimeHrs }
   };
