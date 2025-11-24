@@ -44,6 +44,7 @@ function applyActivityPreset(kind) {
 //
 // ---------- App state (single source of truth) ----------
 let trackLatLngs   = [];  // [[lat, lon], ...] resampled
+let trackElevM     = [];  // elevation (m) aligned with trackLatLngs
 let trackBreakIdx  = [];
 let cumDistKm      = [0];
 let cumAscentM     = [0];
@@ -89,6 +90,7 @@ bindTableAPI({
   getCumAsc:   () => cumAscentM,
   getCumDes:   () => cumDescentM,
   getCumTime:  () => cumTimeH,
+  getTrackElev: () => trackElevM,
   getActivityType: () => activitySel?.value || 'hike',
   // leg + labels maps
   roadbookIdx,
@@ -326,6 +328,7 @@ async function processGpxText(gpxText, importRoadbooks = true, options = {}) {
   });
 
   trackLatLngs = built.trackLatLngs;
+  trackElevM   = built.trackElevM;
   trackBreakIdx = built.breakIdx;
   cumDistKm   = built.cumDistKm;
   cumAscentM  = built.cumAscentM;

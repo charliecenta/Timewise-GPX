@@ -18,6 +18,7 @@ const API = {
   getCumAsc: () => [],
   getCumDes: () => [],
   getCumTime: () => [],
+  getTrackElev: () => [],
 
   roadbookIdx: null,            // Array (mutated here)
   roadbookLabels: null,         // Map   (read here)
@@ -213,6 +214,12 @@ export function updateSummaryCard() {
     </div>
   ` : '';
 
+  const profileHtml = renderElevationProfile({
+    distKm: cumDistKm,
+    elevM: API.getTrackElev?.() ?? [],
+    title: t('summary.elevationProfile'),
+  });
+
   API.outputEl.innerHTML = `
     <ul>
       <li><strong>${t('summary.distance')}:</strong> ${fmtKm(totals.distKm)}</li>
@@ -221,7 +228,77 @@ export function updateSummaryCard() {
       <li><strong>${t('summary.activityTime')}:</strong> ${fmtHrs(roll.activityWithCondH)}</li>
       <li><strong>${t('summary.totalTime')}:</strong> ${fmtHrs(roll.totalH)}</li>
     </ul>
+    ${profileHtml}
     ${formulaHtml}
+  `;
+}
+
+function renderElevationProfile({ distKm = [], elevM = [], title = '' }) {
+  const pairs = distKm.map((d, i) => ({ d, e: elevM[i] }))
+    .filter(p => Number.isFinite(p.d) && Number.isFinite(p.e));
+
+  if (pairs.length < 2) return '';
+
+  const totalDist = pairs[pairs.length - 1].d;
+  if (!Number.isFinite(totalDist) || totalDist <= 0) return '';
+
+  const minElev = Math.min(...pairs.map(p => p.e));
+  const maxElev = Math.max(...pairs.map(p => p.e));
+  const elevRange = Math.max(1, maxElev - minElev);
+
+  const width = 720;
+  const height = 240;
+  const padX = 36;
+  const padY = 22;
+  const innerW = width - padX * 2;
+  const innerH = height - padY * 2;
+  const baseY = padY + innerH;
+
+  const toX = (d) => padX + (d / totalDist) * innerW;
+  const toY = (e) => padY + (1 - ((e - minElev) / elevRange)) * innerH;
+
+  const first = pairs[0];
+  let areaD = `M ${toX(first.d).toFixed(1)} ${baseY.toFixed(1)} L ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+  let lineD = `M ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+
+  for (let i = 1; i < pairs.length; i++) {
+    const { d, e } = pairs[i];
+    const x = toX(d).toFixed(1);
+    const y = toY(e).toFixed(1);
+    areaD += ` L ${x} ${y}`;
+    lineD += ` L ${x} ${y}`;
+  }
+
+  const last = pairs[pairs.length - 1];
+  areaD += ` L ${toX(last.d).toFixed(1)} ${baseY.toFixed(1)} Z`;
+
+  const kmLabel = `${totalDist.toFixed(2)} km`;
+  const elevLabel = `${Math.round(minElev)}–${Math.round(maxElev)} m`;
+
+  return `
+    <div class="summary-elevation" aria-label="${escapeHtml(title)}">
+      <div class="summary-elevation__header">
+        <span class="summary-elevation__title">${escapeHtml(title)}</span>
+        <span class="summary-elevation__meta">${escapeHtml(kmLabel)} · ${escapeHtml(elevLabel)}</span>
+      </div>
+      <svg class="summary-elevation__plot" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}">
+        <defs>
+          <linearGradient id="elev-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.32" />
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05" />
+          </linearGradient>
+        </defs>
+        <rect x="${padX}" y="${padY}" width="${innerW}" height="${innerH}" fill="var(--map-bg)" stroke="var(--card-border)" stroke-width="1" rx="8" ry="8" />
+        <path d="${areaD}" fill="url(#elev-fill)" stroke="none" />
+        <path d="${lineD}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        <g class="summary-elevation__axes" fill="var(--muted)" font-size="12" font-weight="600">
+          <text x="${padX}" y="${baseY + 16}" text-anchor="start">0 km</text>
+          <text x="${padX + innerW}" y="${baseY + 16}" text-anchor="end">${kmLabel}</text>
+          <text x="${padX - 6}" y="${toY(maxElev) + 4}" text-anchor="end">${Math.round(maxElev)} m</text>
+          <text x="${padX - 6}" y="${toY(minElev) + 4}" text-anchor="end">${Math.round(minElev)} m</text>
+        </g>
+      </svg>
+    </div>
   `;
 }
 

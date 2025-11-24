@@ -342,6 +342,37 @@ h1 { margin: 0; font-size: 20px; }
   margin: 0;
 }
 
+#summaryCard .summary-elevation {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(42, 125, 225, 0.06), transparent 45%);
+}
+
+#summaryCard .summary-elevation__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+#summaryCard .summary-elevation__title {
+  font-weight: 700;
+}
+
+#summaryCard .summary-elevation__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+#summaryCard .summary-elevation__plot {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 /* =========================================================
    CONTROLS
    ========================================================= */
