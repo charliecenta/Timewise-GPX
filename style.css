@@ -344,7 +344,7 @@ h1 { margin: 0; font-size: 20px; }
 
 #summaryCard .summary-elevation {
   margin-top: 12px;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--card-border);
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(42, 125, 225, 0.06), transparent 45%);
@@ -371,6 +371,29 @@ h1 { margin: 0; font-size: 20px; }
   width: 100%;
   height: auto;
   display: block;
+}
+
+#summaryCard .summary-elevation__plot-wrap {
+  position: relative;
+}
+
+#summaryCard .summary-elevation__grid line {
+  stroke-dasharray: 2 4;
+}
+
+#summaryCard .summary-elevation__tooltip {
+  position: absolute;
+  display: none;
+  padding: 6px 8px;
+  background: var(--card-bg);
+  color: var(--fg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 18px var(--shadow);
+  font-size: 0.9rem;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
 }
 
 /* =========================================================
