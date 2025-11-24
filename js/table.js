@@ -18,6 +18,7 @@ const API = {
   getCumAsc: () => [],
   getCumDes: () => [],
   getCumTime: () => [],
+  getTrackElev: () => [],
 
   roadbookIdx: null,            // Array (mutated here)
   roadbookLabels: null,         // Map   (read here)
@@ -213,6 +214,14 @@ export function updateSummaryCard() {
     </div>
   ` : '';
 
+  const profile = renderElevationProfile({
+    distKm: cumDistKm,
+    elevM: API.getTrackElev?.() ?? [],
+    title: t('summary.elevationProfile'),
+    roadbookIdx: API.roadbookIdx,
+    getWaypointName: API.getWaypointName,
+  });
+
   API.outputEl.innerHTML = `
     <ul>
       <li><strong>${t('summary.distance')}:</strong> ${fmtKm(totals.distKm)}</li>
@@ -221,8 +230,217 @@ export function updateSummaryCard() {
       <li><strong>${t('summary.activityTime')}:</strong> ${fmtHrs(roll.activityWithCondH)}</li>
       <li><strong>${t('summary.totalTime')}:</strong> ${fmtHrs(roll.totalH)}</li>
     </ul>
+    ${profile.html}
     ${formulaHtml}
   `;
+
+  profile.afterRender?.(API.outputEl.querySelector('.summary-elevation'));
+}
+
+function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbookIdx = [], getWaypointName = () => '' }) {
+  const pairs = distKm.map((d, i) => ({ d, e: elevM[i] }))
+    .filter(p => Number.isFinite(p.d) && Number.isFinite(p.e));
+
+  if (pairs.length < 2) return { html: '' };
+
+  const totalDist = pairs[pairs.length - 1].d;
+  if (!Number.isFinite(totalDist) || totalDist <= 0) return { html: '' };
+
+  const rawMinElev = Math.min(...pairs.map(p => p.e));
+  const rawMaxElev = Math.max(...pairs.map(p => p.e));
+  const elevStep = chooseNiceStep(rawMaxElev - rawMinElev, 5);
+  const minElev = Math.floor(rawMinElev / elevStep) * elevStep;
+  const maxElev = Math.ceil(rawMaxElev / elevStep) * elevStep;
+  const elevRange = Math.max(1, maxElev - minElev);
+
+  const width = 720;
+  const height = 260;
+  const padX = 48;
+  const padY = 26;
+  const innerW = width - padX * 2;
+  const innerH = height - padY * 2;
+  const baseY = padY + innerH;
+
+  const toX = (d) => padX + (d / totalDist) * innerW;
+  const toY = (e) => padY + (1 - ((e - minElev) / elevRange)) * innerH;
+
+  const first = pairs[0];
+  let areaD = `M ${toX(first.d).toFixed(1)} ${baseY.toFixed(1)} L ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+  let lineD = `M ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+
+  for (let i = 1; i < pairs.length; i++) {
+    const { d, e } = pairs[i];
+    const x = toX(d).toFixed(1);
+    const y = toY(e).toFixed(1);
+    areaD += ` L ${x} ${y}`;
+    lineD += ` L ${x} ${y}`;
+  }
+
+  const last = pairs[pairs.length - 1];
+  areaD += ` L ${toX(last.d).toFixed(1)} ${baseY.toFixed(1)} Z`;
+
+  const kmLabel = `${totalDist.toFixed(2)} km`;
+  const elevLabel = `${Math.round(minElev)}–${Math.round(maxElev)} m`;
+
+  const distStep = chooseNiceStep(totalDist, 6);
+  const distTicks = makeTicks(0, totalDist, distStep);
+  const elevTicks = makeTicks(minElev, maxElev, elevStep);
+  const distDecimals = distStep < 1 ? (distStep < 0.1 ? 2 : 1) : 0;
+
+  const roadbookMarkers = roadbookIdx
+    .map(idx => ({ idx, dist: distKm[idx], label: getWaypointName(idx) }))
+    .filter(r => Number.isFinite(r.dist))
+    .filter((r, i, arr) => arr.findIndex(o => Math.abs(o.dist - r.dist) < 1e-6) === i);
+
+  const areaId = `elev-fill-${Math.random().toString(36).slice(2, 8)}`;
+
+  const html = `
+    <div class="summary-elevation" aria-label="${escapeHtml(title)}">
+      <div class="summary-elevation__header">
+        <span class="summary-elevation__title">${escapeHtml(title)}</span>
+        <span class="summary-elevation__meta">${escapeHtml(kmLabel)} · ${escapeHtml(elevLabel)}</span>
+      </div>
+      <div class="summary-elevation__body">
+        <svg class="summary-elevation__plot" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}">
+          <defs>
+            <linearGradient id="${areaId}" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.32" />
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05" />
+            </linearGradient>
+          </defs>
+          <rect x="${padX}" y="${padY}" width="${innerW}" height="${innerH}" fill="var(--map-bg)" stroke="var(--card-border)" stroke-width="1" rx="8" ry="8" />
+          <g class="summary-elevation__grid">
+            ${distTicks.map(d => `<line x1="${toX(d).toFixed(1)}" y1="${padY}" x2="${toX(d).toFixed(1)}" y2="${baseY}" />`).join('')}
+            ${elevTicks.map(e => `<line x1="${padX}" y1="${toY(e).toFixed(1)}" x2="${padX + innerW}" y2="${toY(e).toFixed(1)}" />`).join('')}
+          </g>
+          <path d="${areaD}" fill="url(#${areaId})" stroke="none" />
+          <path d="${lineD}" class="summary-elevation__line" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <g class="summary-elevation__axes" fill="var(--muted)" font-size="12" font-weight="600">
+            ${distTicks.map(d => `<text x="${toX(d).toFixed(1)}" y="${baseY + 16}" text-anchor="${d === 0 ? 'start' : (d >= totalDist ? 'end' : 'middle')}">${escapeHtml(d === 0 ? '0 km' : `${d.toFixed(distDecimals)} km`)}</text>`).join('')}
+            ${elevTicks.map(e => `<text x="${padX - 8}" y="${toY(e).toFixed(1) + 4}" text-anchor="end">${Math.round(e)} m</text>`).join('')}
+          </g>
+          <g class="summary-elevation__roadbooks" fill="var(--accent-strong)" font-size="12" font-weight="700">
+            ${roadbookMarkers.map(r => `
+              <line x1="${toX(r.dist).toFixed(1)}" y1="${padY}" x2="${toX(r.dist).toFixed(1)}" y2="${baseY}" />
+              <text x="${toX(r.dist).toFixed(1)}" y="${padY - 6}" text-anchor="middle">${escapeHtml(r.label)}</text>
+            `).join('')}
+          </g>
+          <g class="summary-elevation__hover">
+            <line class="hover-line" x1="${padX}" x2="${padX}" y1="${padY}" y2="${baseY}" />
+            <circle class="hover-dot" cx="${padX}" cy="${padY}" r="5" />
+          </g>
+        </svg>
+        <div class="summary-elevation__tooltip" role="presentation" hidden></div>
+      </div>
+    </div>
+  `;
+
+  const afterRender = (root) => {
+    if (!root) return;
+    const svg = root.querySelector('svg');
+    const tooltip = root.querySelector('.summary-elevation__tooltip');
+    const hoverLine = root.querySelector('.hover-line');
+    const hoverDot = root.querySelector('.hover-dot');
+    if (!svg || !tooltip || !hoverLine || !hoverDot) return;
+
+    const distances = pairs.map(p => p.d);
+    const elevations = pairs.map(p => p.e);
+
+    function findNearestIndex(target) {
+      let lo = 0, hi = distances.length - 1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (distances[mid] < target) lo = mid + 1; else hi = mid;
+      }
+      if (lo > 0 && Math.abs(distances[lo - 1] - target) < Math.abs(distances[lo] - target)) return lo - 1;
+      return lo;
+    }
+
+    function slopePct(i) {
+      if (i <= 0 || i >= elevations.length) return 0;
+      const dKm = distances[i] - distances[i - 1];
+      const dM = dKm * 1000;
+      if (!dM) return 0;
+      const dEle = elevations[i] - elevations[i - 1];
+      return (dEle / dM) * 100;
+    }
+
+    function updateTooltip(evt) {
+      const rect = svg.getBoundingClientRect();
+      const x = evt.clientX - rect.left;
+      const y = evt.clientY - rect.top;
+      if (x < padX || x > padX + innerW || y < padY || y > baseY) {
+        tooltip.hidden = true;
+        hoverLine.style.display = 'none';
+        hoverDot.style.display = 'none';
+        return;
+      }
+
+      const dist = ((x - padX) / innerW) * totalDist;
+      const idx = findNearestIndex(dist);
+      const d = distances[idx];
+      const e = elevations[idx];
+      const s = slopePct(idx);
+
+      const cx = toX(d);
+      const cy = toY(e);
+
+      hoverLine.style.display = 'block';
+      hoverDot.style.display = 'block';
+      hoverLine.setAttribute('x1', cx);
+      hoverLine.setAttribute('x2', cx);
+      hoverDot.setAttribute('cx', cx);
+      hoverDot.setAttribute('cy', cy);
+
+      tooltip.hidden = false;
+      tooltip.innerHTML = `
+        <div><strong>${d.toFixed(2)} km</strong></div>
+        <div>${Math.round(e)} m</div>
+        <div>${s.toFixed(1)} %</div>
+      `;
+
+      const rootRect = root.getBoundingClientRect();
+      const tipRect = tooltip.getBoundingClientRect();
+      const tipX = Math.min(Math.max(cx + rootRect.left - rootRect.x - tipRect.width / 2, 8), rootRect.width - tipRect.width - 8);
+      const tipY = cy + rootRect.top - rootRect.y - tipRect.height - 12;
+      tooltip.style.left = `${tipX}px`;
+      tooltip.style.top = `${Math.max(tipY, 8)}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.hidden = true;
+      hoverLine.style.display = 'none';
+      hoverDot.style.display = 'none';
+    }
+
+    svg.addEventListener('pointermove', updateTooltip);
+    svg.addEventListener('pointerleave', hideTooltip);
+    hideTooltip();
+  };
+
+  return { html, afterRender };
+}
+
+function chooseNiceStep(range, targetCount = 5) {
+  if (!Number.isFinite(range) || range <= 0) return 1;
+  const raw = range / Math.max(1, targetCount);
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / pow;
+  let step;
+  if (norm <= 1.5) step = 1;
+  else if (norm <= 2.5) step = 2;
+  else if (norm <= 4) step = 2.5;
+  else if (norm <= 7.5) step = 5;
+  else step = 10;
+  return step * pow;
+}
+
+function makeTicks(min, max, step) {
+  if (!Number.isFinite(step) || step <= 0) return [min, max];
+  const out = [];
+  for (let v = min; v <= max + 1e-6; v += step) out.push(Number(v.toFixed(6)));
+  if (out[out.length - 1] !== max) out.push(max);
+  return out;
 }
 
 /** Public: hook fade shadows on the horizontal scroll wrapper */
