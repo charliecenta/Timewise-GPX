@@ -117,7 +117,7 @@ export function nearestIndexOnTrack([la, lo], latlngs) {
  * Build full resampled track + cumulative arrays + totals from raw segments & settings.
  * Returns:
  *  {
- *    trackLatLngs, breakIdx,
+ *    trackLatLngs, trackElevM, breakIdx,
  *    cumDistKm, cumAscentM, cumDescentM, cumTimeH,
  *    totals: { distKm, ascentM, descentM, timeHrs }
  *  }
@@ -130,6 +130,7 @@ export function buildTrackFromSegments(segments, settings) {
   } = settings;
 
   let trackLatLngs = [];
+  let trackElevM = [];
   const breakIdx = [];
   const cumDistKm = [0], cumAscentM = [0], cumDescentM = [0], cumTimeH = [0];
 
@@ -160,6 +161,7 @@ export function buildTrackFromSegments(segments, settings) {
 
     const latlngs = resampled.map(p => [p.lat, p.lon]);
     trackLatLngs = trackLatLngs.concat(latlngs);
+    trackElevM = trackElevM.concat(elevFiltered.map(v => Number.isFinite(v) ? v : 0));
 
     for (let i = 1; i < resampled.length; i++) {
       const p1 = resampled[i - 1];
@@ -192,7 +194,7 @@ export function buildTrackFromSegments(segments, settings) {
   }
 
   return {
-    trackLatLngs, breakIdx,
+    trackLatLngs, trackElevM, breakIdx,
     cumDistKm, cumAscentM, cumDescentM, cumTimeH,
     totals: { distKm: totalDistKm, ascentM: totalAscentM, descentM: totalDescentM, timeHrs: totalTimeHrs }
   };
