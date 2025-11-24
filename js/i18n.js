@@ -88,6 +88,7 @@ const translations = {
       descent: 'Descent',
       activityTime: 'Estimated Activity Time',
       totalTime: 'Estimated Total Time',
+      elevationProfile: 'Elevation profile',
       formulaHeading: 'Formula',
       formulas: {
         hike: 'Activity Time = max(Flat, Vertical) + 0.5 × min(Flat, Vertical); downhill legs × Downhill factor',
@@ -223,6 +224,7 @@ const translations = {
       descent: 'Descenso',
       activityTime: 'Tiempo de actividad estimado',
       totalTime: 'Tiempo total estimado',
+      elevationProfile: 'Perfil de elevación',
       formulaHeading: 'Fórmula',
       formulas: {
         hike: 'Tiempo de actividad = max(Llano, Vertical) + 0,5 × min(Llano, Vertical); tramos de bajada × Factor de bajada',
@@ -358,6 +360,7 @@ const translations = {
       descent: 'Desnivell negatiu',
       activityTime: 'Temps d’activitat estimat',
       totalTime: 'Temps total estimat',
+      elevationProfile: 'Perfil d’elevació',
       formulaHeading: 'Fórmula',
       formulas: {
         hike: 'Temps d’activitat = max(Plane, Vertical) + 0,5 × min(Plane, Vertical); trams de baixada × Factor de baixada',
