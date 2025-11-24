@@ -335,11 +335,78 @@ h1 { margin: 0; font-size: 20px; }
 #summaryCard .summary-formula-heading {
   margin: 0 0 0.25rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--fg);
 }
 
 #summaryCard .summary-formula-text {
   margin: 0;
+}
+
+#summaryCard .summary-grid {
+  display: grid;
+  gap: 12px;
+}
+
+#summaryCard .summary-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.elevation-card {
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  background: linear-gradient(180deg, rgba(42, 125, 225, 0.04), rgba(42, 125, 225, 0.01));
+}
+
+.elevation-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.elevation-title {
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.elevation-range {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.elevation-distance {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.elevation-chart {
+  width: 100%;
+  display: block;
+}
+
+.elevation-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.elevation-area {
+  fill: url(#elevGradient);
+  stroke: none;
+}
+
+.elevation-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
 }
 
 /* =========================================================

@@ -68,6 +68,7 @@ let cumDistKm = [];           // prefix sums
 let cumAscentM = [];
 let cumDescentM = [];
 let cumTimeH = [];
+let elevProfileM = [];
 
 let roadbookIdx = [];         // indices into trackLatLngs
 let roadbookLabels = new Map(); // pointIndex -> label
@@ -296,6 +297,7 @@ async function processGpxText(gpxText, importRoadbooks = true) {
   cumAscentM = [0];
   cumDescentM = [0];
   cumTimeH = [0];
+  elevProfileM = [];
   roadbookIdx = [];
   roadbookLabels.clear();
   legLabels.clear();
@@ -333,6 +335,14 @@ async function processGpxText(gpxText, importRoadbooks = true) {
 
     const latlngs = resampled.map(p => [p.lat, p.lon]);
     trackLatLngs = trackLatLngs.concat(latlngs);
+
+    // elevation profile (keep aligned with trackLatLngs/cumDistKm)
+    if (resampled.length > 0) {
+      elevProfileM.push(elevFiltered[0]);
+      for (let i = 1; i < resampled.length; i++) {
+        elevProfileM.push(elevFiltered[i]);
+      }
+    }
 
     for (let i = 1; i < resampled.length; i++) {
       const p1 = resampled[i - 1];
@@ -1551,14 +1561,85 @@ function updateSummaryCard() {
   const smoothWinM    = parseFloat(document.getElementById("smoothWinM")?.value)    || 35;
   const elevDeadbandM = parseFloat(document.getElementById("elevDeadbandM")?.value) || 2;
 
+  const profileHtml = buildElevationProfile(cumDistKm, elevProfileM);
+
   outputEl.innerHTML = `
-    <ul>
-      <li><strong>Distance:</strong> ${fmtKm(totalDistKm)}</li>
-      <li><strong>Ascent:</strong> ${Math.round(totalAscentM)} m</li>
-      <li><strong>Descent:</strong> ${Math.round(totalDescentM)} m</li>
-      <li><strong>Estimated Activity Time:</strong> ${fmtHrs(activityWithCondH)}</li>
-      <li><strong>Estimated Total Time:</strong> ${fmtHrs(totalH)}</li>
-    </ul>
+    <div class="summary-grid">
+      <ul class="summary-stats">
+        <li><strong>Distance:</strong> ${fmtKm(totalDistKm)}</li>
+        <li><strong>Ascent:</strong> ${Math.round(totalAscentM)} m</li>
+        <li><strong>Descent:</strong> ${Math.round(totalDescentM)} m</li>
+        <li><strong>Estimated Activity Time:</strong> ${fmtHrs(activityWithCondH)}</li>
+        <li><strong>Estimated Total Time:</strong> ${fmtHrs(totalH)}</li>
+      </ul>
+      ${profileHtml}
+    </div>
+    <div class="summary-formula">
+      <p class="summary-formula-heading">Filters applied</p>
+      <p class="summary-formula-text">Resample: ${spacingM} m · Smoothing: ${smoothWinM} m · Deadband: ${elevDeadbandM} m</p>
+    </div>
+  `;
+}
+
+function buildElevationProfile(distancesKm, elevationsM) {
+  if (!distancesKm?.length || !elevationsM?.length || distancesKm.length !== elevationsM.length || distancesKm.length < 2) {
+    return "";
+  }
+
+  const width = 740;
+  const height = 240;
+  const padX = 32;
+  const padY = 26;
+
+  const totalDist = distancesKm[distancesKm.length - 1] || 0;
+  let minElev = elevationsM[0];
+  let maxElev = elevationsM[0];
+  for (let i = 1; i < elevationsM.length; i++) {
+    if (elevationsM[i] < minElev) minElev = elevationsM[i];
+    if (elevationsM[i] > maxElev) maxElev = elevationsM[i];
+  }
+  const elevRange = Math.max(1, maxElev - minElev);
+
+  const xSpan = width - padX * 2;
+  const ySpan = height - padY * 2;
+
+  const x = (d) => padX + (totalDist === 0 ? 0 : (d / totalDist) * xSpan);
+  const y = (e) => height - padY - ((e - minElev) / elevRange) * ySpan;
+
+  let linePath = `M ${x(distancesKm[0])} ${y(elevationsM[0])}`;
+  let areaPath = `M ${x(distancesKm[0])} ${height - padY}`;
+  for (let i = 0; i < distancesKm.length; i++) {
+    const px = x(distancesKm[i]);
+    const py = y(elevationsM[i]);
+    linePath += ` L ${px} ${py}`;
+    areaPath += ` L ${px} ${py}`;
+  }
+  areaPath += ` L ${x(distancesKm[distancesKm.length - 1])} ${height - padY} Z`;
+
+  return `
+    <div class="elevation-card">
+      <div class="elevation-header">
+        <div>
+          <div class="elevation-title">Elevation profile</div>
+          <div class="elevation-range">${Math.round(minElev)}–${Math.round(maxElev)} m</div>
+        </div>
+        <div class="elevation-distance">${fmtKm(totalDist)}</div>
+      </div>
+      <svg class="elevation-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Elevation profile">
+        <defs>
+          <linearGradient id="elevGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05" />
+          </linearGradient>
+        </defs>
+        <path class="elevation-area" d="${areaPath}" />
+        <path class="elevation-line" d="${linePath}" />
+      </svg>
+      <div class="elevation-axis">
+        <span>0 km</span>
+        <span>${fmtKm(totalDist)}</span>
+      </div>
+    </div>
   `;
 }
 
