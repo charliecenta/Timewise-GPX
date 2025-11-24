@@ -342,7 +342,7 @@ h1 { margin: 0; font-size: 20px; }
   margin: 0;
 }
 
-#summaryCard .summary-elevation {
+.summary-elevation {
   margin-top: 12px;
   padding: 12px;
   border: 1px solid var(--card-border);
@@ -350,7 +350,7 @@ h1 { margin: 0; font-size: 20px; }
   background: linear-gradient(180deg, rgba(42, 125, 225, 0.06), transparent 45%);
 }
 
-#summaryCard .summary-elevation__header {
+.summary-elevation__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -358,30 +358,30 @@ h1 { margin: 0; font-size: 20px; }
   margin-bottom: 6px;
 }
 
-#summaryCard .summary-elevation__title {
+.summary-elevation__title {
   font-weight: 700;
 }
 
-#summaryCard .summary-elevation__meta {
+.summary-elevation__meta {
   color: var(--muted);
   font-size: 0.9rem;
 }
 
-#summaryCard .summary-elevation__plot {
+.summary-elevation__plot {
   width: 100%;
   height: auto;
   display: block;
 }
 
-#summaryCard .summary-elevation__plot-wrap {
+.summary-elevation__plot-wrap {
   position: relative;
 }
 
-#summaryCard .summary-elevation__grid line {
+.summary-elevation__grid line {
   stroke-dasharray: 2 4;
 }
 
-#summaryCard .summary-elevation__tooltip {
+.summary-elevation__tooltip {
   position: absolute;
   display: none;
   padding: 6px 8px;
@@ -392,8 +392,13 @@ h1 { margin: 0; font-size: 20px; }
   box-shadow: 0 4px 18px var(--shadow);
   font-size: 0.9rem;
   pointer-events: none;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -110%);
   white-space: nowrap;
+}
+
+.summary-elevation__cursor {
+  pointer-events: none;
+  transition: opacity 0.12s ease;
 }
 
 /* =========================================================

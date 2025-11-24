@@ -14,6 +14,7 @@ import { ACTIVITY_PRESETS } from './config.js';
 // ---------- DOM ----------
 const outputEl      = document.getElementById('output');
 const roadbooksEl   = document.getElementById('roadbooks');
+const elevationEl   = document.getElementById('elevationProfile');
 const clearBtn      = document.getElementById('clearRoadbooksBtn');
 const saveBtn       = document.getElementById('savePlanBtn');
 const loadBtn       = document.getElementById('loadPlanBtn');
@@ -84,6 +85,7 @@ function setRoadbookLabel(idx, label) { setWaypointName(idx, label); }
 bindTableAPI({
   roadbooksEl,
   outputEl,
+  elevationEl,
   // readers
   getTrackLatLngs: () => trackLatLngs,
   getCumDist:  () => cumDistKm,
