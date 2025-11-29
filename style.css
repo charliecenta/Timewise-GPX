@@ -350,6 +350,14 @@ h1 { margin: 0; font-size: 20px; }
   background: linear-gradient(180deg, rgba(42, 125, 225, 0.06), transparent 45%);
 }
 
+#elevationCard {
+  margin-bottom: 16px;
+}
+
+#elevationCard .summary-elevation {
+  margin-top: 0;
+}
+
 .summary-elevation__header {
   display: flex;
   align-items: center;
@@ -392,7 +400,7 @@ h1 { margin: 0; font-size: 20px; }
   box-shadow: 0 4px 18px var(--shadow);
   font-size: 0.9rem;
   pointer-events: none;
-  transform: translate(-50%, -110%);
+  transform: translate(-50%, 0);
   white-space: nowrap;
 }
 

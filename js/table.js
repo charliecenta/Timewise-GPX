@@ -355,7 +355,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
           </g>
           <path d="${areaD}" fill="url(#${gradId})" stroke="none" />
           <path d="${lineD}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-          <g class="summary-elevation__axes" fill="var(--muted)" font-size="12" font-weight="600">
+          <g class="summary-elevation__axes" fill="var(--muted)" font-size="10" font-weight="600">
             ${distTicks.map(d => {
               const x = toX(d).toFixed(1);
               return `<text x="${x}" y="${baseY + 18}" text-anchor="${d === 0 ? 'start' : (d >= totalDist ? 'end' : 'middle')}" aria-hidden="true">${d.toFixed( d < 10 ? 1 : 0)} km</text>`;
@@ -365,14 +365,15 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
               return `<text x="${padX - 8}" y="${y + 4}" text-anchor="end" aria-hidden="true">${Math.round(e)} m</text>`;
             }).join('')}
           </g>
-          <g class="summary-elevation__roadbooks" fill="var(--accent)" font-size="12" font-weight="600">
+          <g class="summary-elevation__roadbooks" fill="var(--accent)" font-size="11" font-weight="600">
             ${rbMarkers.map(rb => {
               const y = Math.min(baseY - 6, Math.max(padY + 10, rb.y));
+              const labelY = padY + 6;
               return `
                 <g>
                   <line x1="${rb.x.toFixed(1)}" y1="${padY}" x2="${rb.x.toFixed(1)}" y2="${baseY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
                   <circle cx="${rb.x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2" />
-                  <text x="${rb.x.toFixed(1)}" y="${(y - 8).toFixed(1)}" text-anchor="middle">${escapeHtml(rb.label)}</text>
+                  <text x="${rb.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="start" dominant-baseline="hanging" transform="rotate(-45 ${rb.x.toFixed(1)} ${labelY.toFixed(1)})">${escapeHtml(rb.label)}</text>
                 </g>`;
             }).join('')}
           </g>
@@ -417,8 +418,6 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
       return `${slopePct.toFixed(1)}%`;
     };
 
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
     const onMove = (evt) => {
       const pt = svg.createSVGPoint();
       pt.x = evt.clientX; pt.y = evt.clientY;
@@ -429,9 +428,10 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
       const y = toY(p.e);
       tip.textContent = `${formatKm(p.d)} · ${Math.round(p.e)} m · ${formatSlope(idx)} slope`;
       tip.style.display = 'block';
-      const halfTip = (tip.offsetWidth || 0) / 2;
-      const clampedX = clamp(x, padX + halfTip, width - padX - halfTip);
-      const anchorY = Math.max(padY + 8, y);
+      const tipHalfW = (tip.offsetWidth || 0) / 2;
+      const tipH = tip.offsetHeight || 0;
+      const clampedX = Math.max(padX + tipHalfW + 4, Math.min(width - padX - tipHalfW - 4, x));
+      const anchorY = Math.max(padY, y - tipH - 10);
       tip.style.left = `${clampedX}px`;
       tip.style.top = `${anchorY}px`;
       cursor.setAttribute('cx', x.toFixed(2));
