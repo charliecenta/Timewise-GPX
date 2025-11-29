@@ -14,6 +14,7 @@ import { ACTIVITY_PRESETS } from './config.js';
 // ---------- DOM ----------
 const outputEl      = document.getElementById('output');
 const roadbooksEl   = document.getElementById('roadbooks');
+const elevationEl   = document.getElementById('elevationProfile');
 const clearBtn      = document.getElementById('clearRoadbooksBtn');
 const saveBtn       = document.getElementById('savePlanBtn');
 const loadBtn       = document.getElementById('loadPlanBtn');
@@ -44,6 +45,7 @@ function applyActivityPreset(kind) {
 //
 // ---------- App state (single source of truth) ----------
 let trackLatLngs   = [];  // [[lat, lon], ...] resampled
+let trackElevM     = [];  // elevation (m) aligned with trackLatLngs
 let trackBreakIdx  = [];
 let cumDistKm      = [0];
 let cumAscentM     = [0];
@@ -83,12 +85,14 @@ function setRoadbookLabel(idx, label) { setWaypointName(idx, label); }
 bindTableAPI({
   roadbooksEl,
   outputEl,
+  elevationEl,
   // readers
   getTrackLatLngs: () => trackLatLngs,
   getCumDist:  () => cumDistKm,
   getCumAsc:   () => cumAscentM,
   getCumDes:   () => cumDescentM,
   getCumTime:  () => cumTimeH,
+  getTrackElev: () => trackElevM,
   getActivityType: () => activitySel?.value || 'hike',
   // leg + labels maps
   roadbookIdx,
@@ -326,6 +330,7 @@ async function processGpxText(gpxText, importRoadbooks = true, options = {}) {
   });
 
   trackLatLngs = built.trackLatLngs;
+  trackElevM   = built.trackElevM;
   trackBreakIdx = built.breakIdx;
   cumDistKm   = built.cumDistKm;
   cumAscentM  = built.cumAscentM;

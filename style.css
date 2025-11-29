@@ -342,6 +342,73 @@ h1 { margin: 0; font-size: 20px; }
   margin: 0;
 }
 
+.summary-elevation {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(42, 125, 225, 0.06), transparent 45%);
+}
+
+#elevationCard {
+  margin-bottom: 16px;
+}
+
+#elevationCard .summary-elevation {
+  margin-top: 0;
+}
+
+.summary-elevation__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.summary-elevation__title {
+  font-weight: 700;
+}
+
+.summary-elevation__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.summary-elevation__plot {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.summary-elevation__plot-wrap {
+  position: relative;
+}
+
+.summary-elevation__grid line {
+  stroke-dasharray: 2 4;
+}
+
+.summary-elevation__tooltip {
+  position: absolute;
+  display: none;
+  padding: 6px 8px;
+  background: var(--card-bg);
+  color: var(--fg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 18px var(--shadow);
+  font-size: 0.9rem;
+  pointer-events: none;
+  transform: translate(-50%, 0);
+  white-space: nowrap;
+}
+
+.summary-elevation__cursor {
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
 /* =========================================================
    CONTROLS
    ========================================================= */
