@@ -342,21 +342,7 @@ h1 { margin: 0; font-size: 20px; }
   margin: 0;
 }
 
-.summary-elevation {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(42, 125, 225, 0.06), transparent 45%);
-}
-
-#elevationCard {
-  margin-bottom: 16px;
-}
-
-#elevationCard .summary-elevation {
-  margin-top: 0;
-}
+.summary-elevation { margin: 0; }
 
 .summary-elevation__header {
   display: flex;
@@ -383,10 +369,15 @@ h1 { margin: 0; font-size: 20px; }
 
 .summary-elevation__plot-wrap {
   position: relative;
+  overflow: visible;
 }
 
 .summary-elevation__grid line {
   stroke-dasharray: 2 4;
+}
+
+.summary-elevation__roadbooks {
+  font-size: 10px;
 }
 
 .summary-elevation__tooltip {

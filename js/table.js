@@ -262,10 +262,44 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const maxElev = Math.max(...pairs.map(p => p.e));
   const elevRange = Math.max(1, maxElev - minElev);
 
+  const wrapLabel = (label = '', maxLen = 30) => {
+    if (!label) return [''];
+    const chunks = [];
+    const words = label.split(/\s+/);
+    let current = '';
+    const pushCurrent = () => { if (current) { chunks.push(current); current = ''; } };
+    const breakLongWord = (word) => word.match(new RegExp(`.{1,${maxLen}}`, 'g')) || [word];
+
+    words.forEach(word => {
+      const parts = breakLongWord(word);
+      parts.forEach((part, idx) => {
+        const candidate = current ? `${current} ${part}` : part;
+        if (candidate.length > maxLen && current) {
+          pushCurrent();
+          current = part;
+        } else {
+          current = candidate;
+        }
+        if (idx < parts.length - 1) pushCurrent();
+      });
+    });
+    pushCurrent();
+    return chunks.length ? chunks : [''];
+  };
+
+  const wrappedRoadbooks = roadbooks.map(rb => ({
+    ...rb,
+    lines: wrapLabel(rb.label, 30),
+  }));
+  const maxLabelLines = wrappedRoadbooks.reduce((max, rb) => Math.max(max, rb.lines.length || 1), 1);
+  const labelLineHeight = 11;
+  const labelPadding = 8;
+  const labelArea = labelPadding + (maxLabelLines - 1) * labelLineHeight;
+
   const width = 720;
-  const height = 260;
+  const height = 260 + labelArea;
   const padX = 46;
-  const padY = 28;
+  const padY = 28 + labelArea;
   const innerW = width - padX * 2;
   const innerH = height - padY * 2;
   const baseY = padY + innerH;
@@ -305,7 +339,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const kmLabel = `${totalDist.toFixed(2)} km`;
   const elevLabel = `${Math.round(minElev)}–${Math.round(maxElev)} m`;
 
-  const distStep = chooseStep(totalDist, 7);
+  const distStep = chooseStep(totalDist, 5);
   const elevStep = chooseStep(elevRange, 5);
   const distTicks = [];
   for (let d = 0; d <= totalDist + distStep * 0.25; d += distStep) {
@@ -322,10 +356,10 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const cursorStartX = toX(first.d).toFixed(1);
   const cursorStartY = toY(first.e).toFixed(1);
 
-  const rbMarkers = roadbooks.map(rb => ({
+  const rbMarkers = wrappedRoadbooks.map(rb => ({
     x: toX(rb.distKm),
     y: toY(rb.elevM),
-    label: rb.label,
+    lines: rb.lines,
   }));
 
   const html = `
@@ -365,15 +399,17 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
               return `<text x="${padX - 8}" y="${y + 4}" text-anchor="end" aria-hidden="true">${Math.round(e)} m</text>`;
             }).join('')}
           </g>
-          <g class="summary-elevation__roadbooks" fill="var(--accent)" font-size="11" font-weight="600">
+          <g class="summary-elevation__roadbooks" fill="var(--accent)" font-size="10" font-weight="600">
             ${rbMarkers.map(rb => {
               const y = Math.min(baseY - 6, Math.max(padY + 10, rb.y));
-              const labelY = padY + 6;
+              const labelY = padY - labelArea + labelPadding;
               return `
                 <g>
                   <line x1="${rb.x.toFixed(1)}" y1="${padY}" x2="${rb.x.toFixed(1)}" y2="${baseY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
                   <circle cx="${rb.x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2" />
-                  <text x="${rb.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="start" dominant-baseline="hanging" transform="rotate(-45 ${rb.x.toFixed(1)} ${labelY.toFixed(1)})">${escapeHtml(rb.label)}</text>
+                  <text x="${rb.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" dominant-baseline="hanging">
+                    ${rb.lines.map((line, idx) => `<tspan x="${rb.x.toFixed(1)}" dy="${idx === 0 ? 0 : labelLineHeight}">${escapeHtml(line)}</tspan>`).join('')}
+                  </text>
                 </g>`;
             }).join('')}
           </g>
@@ -430,10 +466,20 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
       tip.style.display = 'block';
       const tipHalfW = (tip.offsetWidth || 0) / 2;
       const tipH = tip.offsetHeight || 0;
-      const clampedX = Math.max(padX + tipHalfW + 4, Math.min(width - padX - tipHalfW - 4, x));
-      const anchorY = Math.max(padY, y - tipH - 10);
-      tip.style.left = `${clampedX}px`;
-      tip.style.top = `${anchorY}px`;
+      const svgRect = svg.getBoundingClientRect();
+      const wrapRect = tip.parentElement?.getBoundingClientRect();
+      const scaleX = svgRect.width / width;
+      const scaleY = svgRect.height / height;
+      const svgOffsetX = wrapRect ? svgRect.left - wrapRect.left : 0;
+      const svgOffsetY = wrapRect ? svgRect.top - wrapRect.top : 0;
+      const scaledX = x * scaleX;
+      const scaledY = y * scaleY;
+      const padOffsetX = padX * scaleX;
+      const padOffsetY = padY * scaleY;
+      const clampedX = Math.max(padOffsetX + tipHalfW + 4, Math.min(svgRect.width - padOffsetX - tipHalfW - 4, scaledX));
+      const anchorY = Math.max(padOffsetY, scaledY - tipH - 10);
+      tip.style.left = `${svgOffsetX + clampedX}px`;
+      tip.style.top = `${svgOffsetY + anchorY}px`;
       cursor.setAttribute('cx', x.toFixed(2));
       cursor.setAttribute('cy', y.toFixed(2));
       cursor.setAttribute('opacity', '1');
