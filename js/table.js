@@ -262,7 +262,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const maxElev = Math.max(...pairs.map(p => p.e));
   const elevRange = Math.max(1, maxElev - minElev);
 
-  const wrapLabel = (label, maxLen = 30) => {
+  const wrapLabel = (label, maxLen = 20) => {
     const words = (label || '').split(/\s+/).filter(Boolean);
     const lines = [];
     let line = '';
@@ -301,7 +301,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const padX = 46;
   const padBottom = 28;
   const labelLineHeight = 12;
-  const maxLabelChars = 30;
+  const maxLabelChars = 20;
 
   const validRoadbooks = roadbooks
     .map(rb => ({
@@ -403,7 +403,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
               <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05" />
             </linearGradient>
           </defs>
-          <rect x="${padX}" y="${padTop}" width="${innerW}" height="${innerH}" fill="var(--map-bg)" stroke="var(--card-border)" stroke-width="1" rx="8" ry="8" />
+          <rect x="${padX}" y="${padTop}" width="${innerW}" height="${innerH}" fill="var(--map-bg)" rx="8" ry="8" />
           <g class="summary-elevation__grid" stroke="var(--card-border)" stroke-width="1">
             ${distTicks.map(d => {
               const x = toX(d).toFixed(1);
@@ -433,7 +433,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
                 <g>
                   <line x1="${rb.x.toFixed(1)}" y1="${padTop}" x2="${rb.x.toFixed(1)}" y2="${baseY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
                   <circle cx="${rb.x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2" />
-                  <text x="${rb.x.toFixed(1)}" y="${labelStartY.toFixed(1)}" text-anchor="middle" dominant-baseline="hanging">
+                  <text x="${rb.x.toFixed(1)}" y="${labelStartY.toFixed(1)}" text-anchor="start" dominant-baseline="hanging" transform="rotate(-45 ${rb.x.toFixed(1)} ${labelStartY.toFixed(1)})">
                     ${rb.labelLines.map((line, idx) => `<tspan x="${rb.x.toFixed(1)}" dy="${idx === 0 ? 0 : labelLineHeight}">${escapeHtml(line)}</tspan>`).join('')}
                   </text>
                 </g>`;
