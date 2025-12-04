@@ -249,6 +249,74 @@ export function updateSummaryCard() {
 
 let elevationProfileId = 0;
 
+function measureRoadbookLabels(roadbooks = [], { lineHeight = 12, basePadTop = 28, anchorPadding = 6, labelPadding = 8 } = {}) {
+  const fallbackLabelArea = (() => {
+    const maxLines = roadbooks.reduce((max, rb) => Math.max(max, rb.labelLines?.length || 0), 0);
+    return maxLines ? (maxLines * lineHeight + labelPadding) : 0;
+  })();
+
+  const fallbackLabelStartY = basePadTop + anchorPadding;
+  if (!roadbooks.length) return { labelArea: 0, labelStartY: fallbackLabelStartY };
+  if (typeof document === 'undefined' || !document.createElementNS || !document.body) {
+    return { labelArea: fallbackLabelArea, labelStartY: fallbackLabelStartY };
+  }
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', '0');
+  svg.setAttribute('height', '0');
+  svg.setAttribute('style', 'position:absolute;left:-9999px;top:-9999px;visibility:hidden;overflow:visible;');
+
+  document.body.appendChild(svg);
+
+  let maxUp = 0;
+  let maxDown = 0;
+
+  roadbooks.forEach(rb => {
+    if (!rb.labelLines?.length) return;
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', '0');
+    text.setAttribute('y', '0');
+    text.setAttribute('text-anchor', 'start');
+    text.setAttribute('dominant-baseline', 'hanging');
+    text.setAttribute('font-size', '9');
+    text.setAttribute('font-weight', '600');
+    text.setAttribute('transform', 'rotate(-45 0 0)');
+
+    rb.labelLines.forEach((line, idx) => {
+      const tspan = document.createElementNS(svgNS, 'tspan');
+      tspan.setAttribute('x', '0');
+      if (idx > 0) tspan.setAttribute('dy', `${lineHeight}`);
+      tspan.textContent = line;
+      text.appendChild(tspan);
+    });
+
+    svg.appendChild(text);
+    const bbox = text.getBBox();
+    svg.removeChild(text);
+
+    const up = Math.max(0, -bbox.y);
+    const down = Math.max(0, bbox.height - up);
+    maxUp = Math.max(maxUp, up);
+    maxDown = Math.max(maxDown, down);
+  });
+
+  document.body.removeChild(svg);
+
+  if (!Number.isFinite(maxUp) || !Number.isFinite(maxDown)) {
+    return { labelArea: fallbackLabelArea, labelStartY: fallbackLabelStartY };
+  }
+
+  const upPx = Math.ceil(maxUp);
+  const downPx = Math.ceil(maxDown);
+  const labelPaddingPx = Math.max(labelPadding, anchorPadding + 2);
+
+  return {
+    labelArea: Math.max(0, upPx + downPx + labelPaddingPx),
+    labelStartY: basePadTop + upPx + anchorPadding,
+  };
+}
+
 function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks = [] }) {
   const pairs = distKm.map((d, i) => ({ d, e: elevM[i] }))
     .filter(p => Number.isFinite(p.d) && Number.isFinite(p.e));
@@ -299,6 +367,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const width = 720;
   const baseHeight = 260;
   const padX = 46;
+  const basePadTop = 28;
   const padBottom = 28;
   const labelLineHeight = 12;
   const maxLabelChars = 20;
@@ -310,10 +379,13 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
     }))
     .filter(rb => Number.isFinite(rb.distKm) && Number.isFinite(rb.elevM));
 
-  const maxLabelLines = validRoadbooks.reduce((max, rb) => Math.max(max, rb.labelLines.length), 0);
-  const labelArea = maxLabelLines ? (maxLabelLines * labelLineHeight + 10) : 0;
+  const { labelArea, labelStartY } = measureRoadbookLabels(validRoadbooks, {
+    lineHeight: labelLineHeight,
+    basePadTop,
+  });
+
   const height = baseHeight + labelArea;
-  const padTop = 28 + labelArea;
+  const padTop = basePadTop + labelArea;
   const innerW = width - padX * 2;
   const innerH = height - padTop - padBottom;
   const baseY = padTop + innerH;
@@ -386,8 +458,6 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
     y: toY(rb.elevM),
     labelLines: rb.labelLines,
   }));
-
-  const labelStartY = padTop - labelArea + 6;
 
   const html = `
     <div class="summary-elevation" aria-label="${escapeHtml(title)}">
