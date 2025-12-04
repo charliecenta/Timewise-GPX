@@ -369,10 +369,12 @@ h1 { margin: 0; font-size: 20px; }
   width: 100%;
   height: auto;
   display: block;
+  overflow: visible;
 }
 
 .summary-elevation__plot-wrap {
   position: relative;
+  overflow: visible;
 }
 
 .summary-elevation__roadbooks {
