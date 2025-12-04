@@ -437,7 +437,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
       return `${slopePct.toFixed(1)}%`;
     };
 
-    const positionTip = (tipEl, x, y) => {
+    const positionTip = (tipEl, x, y, opts = {}) => {
       if (!tipEl) return;
       const wrapRect = svg.parentElement?.getBoundingClientRect();
       const svgRect = svg.getBoundingClientRect();
@@ -452,7 +452,10 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
       const maxX = (wrapRect?.width ?? svgRect.width) - tipHalfW - 4;
       const minX = tipHalfW + 4;
       const clampedX = Math.max(minX, Math.min(maxX, relX));
-      const anchorY = Math.max(0, relY - tipH - 10);
+      const containerH = wrapRect?.height ?? svgRect.height;
+      const anchorY = opts.placement === 'below'
+        ? Math.min(containerH - tipH - 4, relY + 10)
+        : Math.max(0, relY - tipH - 10);
       tipEl.style.left = `${clampedX}px`;
       tipEl.style.top = `${anchorY}px`;
     };
@@ -488,7 +491,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
       const y = parseFloat(target.getAttribute('data-y') || '0');
       waypointTip.textContent = label;
       waypointTip.style.display = 'block';
-      positionTip(waypointTip, x, y);
+      positionTip(waypointTip, x, y, { placement: 'below' });
     };
 
     const onWaypointLeave = () => {
