@@ -398,6 +398,20 @@ h1 { margin: 0; font-size: 20px; }
   white-space: nowrap;
 }
 
+.summary-elevation__tooltip--waypoint {
+  font-weight: 600;
+}
+
+.summary-elevation__waypoint-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.summary-elevation__waypoint line,
+.summary-elevation__waypoint circle {
+  pointer-events: all;
+}
+
 .summary-elevation__cursor {
   pointer-events: none;
   transition: opacity 0.12s ease;
