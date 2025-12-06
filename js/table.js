@@ -384,7 +384,7 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
           </g>
           <g class="summary-elevation__roadbooks" fill="var(--accent)" font-size="9" font-weight="600">
             ${rbMarkers.map(rb => {
-              const y = Math.min(baseY - 6, Math.max(padTop + 10, rb.y));
+              const y = Math.min(baseY - 6, Math.max(padTop + 0, rb.y));
               const label = escapeHtml(rb.label || '');
               return `
                 <g class="summary-elevation__waypoint" data-label="${label}" data-x="${rb.x.toFixed(1)}" data-y="${y.toFixed(1)}">
