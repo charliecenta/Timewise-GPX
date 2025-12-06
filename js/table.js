@@ -363,12 +363,16 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
           <g class="summary-elevation__grid" stroke="var(--card-border)" stroke-width="1">
             ${distTicks.map(d => {
               const x = toX(d).toFixed(1);
-              return `<line x1="${x}" y1="${padTop}" x2="${x}" y2="${baseY}" />`;
+              return `<line x1="${x}" y1="0" x2="${x}" y2="${height}" />`;
             }).join('')}
             ${elevTicks.map(e => {
               const y = toY(e).toFixed(1);
               return `<line x1="${padX}" y1="${y}" x2="${padX + innerW}" y2="${y}" />`;
             }).join('')}
+          </g>
+          <g class="summary-elevation__axes-lines" stroke="var(--card-border)" stroke-width="1.5">
+            <line x1="${padX}" y1="0" x2="${padX}" y2="${height}" />
+            <line x1="${padX}" y1="${baseY}" x2="${padX + innerW}" y2="${baseY}" />
           </g>
           <path d="${areaD}" fill="url(#${gradId})" stroke="none" />
           <path d="${lineD}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
@@ -388,8 +392,8 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
               const label = escapeHtml(rb.label || '');
               return `
                 <g class="summary-elevation__waypoint" data-label="${label}" data-x="${rb.x.toFixed(1)}" data-y="${y.toFixed(1)}">
-                  <rect class="summary-elevation__waypoint-hit" x="${(rb.x - 8).toFixed(1)}" y="${padTop}" width="16" height="${(baseY - padTop).toFixed(1)}" />
-                  <line x1="${rb.x.toFixed(1)}" y1="${padTop}" x2="${rb.x.toFixed(1)}" y2="${baseY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
+                  <rect class="summary-elevation__waypoint-hit" x="${(rb.x - 8).toFixed(1)}" y="0" width="16" height="${height.toFixed(1)}" />
+                  <line x1="${rb.x.toFixed(1)}" y1="0" x2="${rb.x.toFixed(1)}" y2="${height}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
                   <circle cx="${rb.x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2" />
                 </g>`;
             }).join('')}
