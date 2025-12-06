@@ -265,14 +265,15 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const width = 720;
   const baseHeight = 260;
   const padX = 46;
+  const bottomMargin = 8;
 
   const validRoadbooks = roadbooks
     .filter(rb => Number.isFinite(rb.distKm) && Number.isFinite(rb.elevM));
 
-  const height = baseHeight;
+  const height = baseHeight + bottomMargin;
   const innerW = width - padX * 2;
-  const innerH = height;
-  const baseY = height;
+  const innerH = height - bottomMargin;
+  const baseY = innerH;
 
   const chooseStep = (range, targetTicks = 6) => {
     if (range <= 0 || !Number.isFinite(range)) return 1;
@@ -357,11 +358,11 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
               <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05" />
             </linearGradient>
           </defs>
-          <rect x="${padX}" y="0" width="${innerW}" height="${innerH}" fill="var(--map-bg)" rx="8" ry="8" />
+          <rect x="${padX}" y="0" width="${innerW}" height="${height}" fill="var(--map-bg)" rx="8" ry="8" />
           <g class="summary-elevation__grid" stroke="var(--card-border)" stroke-width="1">
             ${distTicks.map(d => {
               const x = toX(d).toFixed(1);
-              return `<line x1="${x}" y1="0" x2="${x}" y2="${baseY}" />`;
+              return `<line x1="${x}" y1="0" x2="${x}" y2="${height}" />`;
             }).join('')}
             ${elevTicks.map(e => {
               const y = toY(e).toFixed(1);
@@ -386,8 +387,8 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
               const label = escapeHtml(rb.label || '');
               return `
                 <g class="summary-elevation__waypoint" data-label="${label}" data-x="${rb.x.toFixed(1)}" data-y="${y.toFixed(1)}">
-                  <rect class="summary-elevation__waypoint-hit" x="${(rb.x - 8).toFixed(1)}" y="0" width="16" height="${baseY.toFixed(1)}" />
-                  <line x1="${rb.x.toFixed(1)}" y1="0" x2="${rb.x.toFixed(1)}" y2="${baseY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
+                  <rect class="summary-elevation__waypoint-hit" x="${(rb.x - 8).toFixed(1)}" y="0" width="16" height="${height.toFixed(1)}" />
+                  <line x1="${rb.x.toFixed(1)}" y1="0" x2="${rb.x.toFixed(1)}" y2="${height}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
                   <circle cx="${rb.x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2" />
                 </g>`;
             }).join('')}
