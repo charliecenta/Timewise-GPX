@@ -11,6 +11,7 @@ const API = {
   // DOM
   roadbooksEl: null,
   outputEl: null,
+  elevationEl: null,
 
   // Data/state (references)
   getTrackLatLngs: () => [],
@@ -18,6 +19,7 @@ const API = {
   getCumAsc: () => [],
   getCumDes: () => [],
   getCumTime: () => [],
+  getTrackElev: () => [],
 
   roadbookIdx: null,            // Array (mutated here)
   roadbookLabels: null,         // Map   (read here)
@@ -194,6 +196,7 @@ export function updateSummaryCard() {
 
   if (!trackLatLngs.length || cumDistKm.length === 0) {
     API.outputEl.innerHTML = "";
+    if (API.elevationEl) API.elevationEl.innerHTML = "";
     return;
   }
 
@@ -223,6 +226,287 @@ export function updateSummaryCard() {
     </ul>
     ${formulaHtml}
   `;
+
+  const profileBlock = renderElevationProfile({
+    distKm: cumDistKm,
+    elevM: API.getTrackElev?.() ?? [],
+    title: t('summary.elevationProfile'),
+    roadbooks: API.roadbookIdx
+      .map(idx => ({
+        idx,
+        distKm: cumDistKm[idx],
+        elevM: (API.getTrackElev?.() ?? [])[idx],
+        label: API.getWaypointName?.(idx) ?? `WP ${idx}`
+      }))
+      .filter(rb => Number.isFinite(rb.distKm) && Number.isFinite(rb.elevM)),
+  });
+
+  if (API.elevationEl) {
+    API.elevationEl.innerHTML = profileBlock?.html ?? '';
+    profileBlock?.bind?.(API.elevationEl);
+  }
+}
+
+let elevationProfileId = 0;
+
+function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks = [] }) {
+  const pairs = distKm.map((d, i) => ({ d, e: elevM[i] }))
+    .filter(p => Number.isFinite(p.d) && Number.isFinite(p.e));
+
+  if (pairs.length < 2) return null;
+
+  const totalDist = pairs[pairs.length - 1].d;
+  if (!Number.isFinite(totalDist) || totalDist <= 0) return null;
+
+  const minElev = Math.min(...pairs.map(p => p.e));
+  const maxElev = Math.max(...pairs.map(p => p.e));
+  const elevRange = Math.max(1, maxElev - minElev);
+
+  const width = 720;
+  const baseHeight = 260;
+  const padX = 46;
+  const padBottom = 28;
+
+  const validRoadbooks = roadbooks
+    .filter(rb => Number.isFinite(rb.distKm) && Number.isFinite(rb.elevM));
+
+  const height = baseHeight;
+  const padTop = 28;
+  const innerW = width - padX * 2;
+  const innerH = height - padTop - padBottom;
+  const baseY = padTop + innerH;
+
+  const chooseStep = (range, targetTicks = 6) => {
+    if (range <= 0 || !Number.isFinite(range)) return 1;
+    const rough = range / targetTicks;
+    const pow10 = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm = rough / pow10;
+    let step;
+    if (norm >= 7.5) step = 10;
+    else if (norm >= 5) step = 5;
+    else if (norm >= 3) step = 2;
+    else if (norm >= 1.5) step = 1;
+    else step = 0.5;
+    return step * pow10;
+  };
+
+  const toX = (d) => padX + (d / totalDist) * innerW;
+  const toY = (e) => padTop + (1 - ((e - minElev) / elevRange)) * innerH;
+
+  const first = pairs[0];
+  let areaD = `M ${toX(first.d).toFixed(1)} ${baseY.toFixed(1)} L ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+  let lineD = `M ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+
+  for (let i = 1; i < pairs.length; i++) {
+    const { d, e } = pairs[i];
+    const x = toX(d).toFixed(1);
+    const y = toY(e).toFixed(1);
+    areaD += ` L ${x} ${y}`;
+    lineD += ` L ${x} ${y}`;
+  }
+
+  const last = pairs[pairs.length - 1];
+  areaD += ` L ${toX(last.d).toFixed(1)} ${baseY.toFixed(1)} Z`;
+
+  const kmLabel = `${totalDist.toFixed(2)} km`;
+  const elevLabel = `${Math.round(minElev)}–${Math.round(maxElev)} m`;
+
+  const distStepBase = chooseStep(totalDist, 5);
+  const elevStep = chooseStep(elevRange, 5);
+  const minLabelSpacing = 70;
+  const maxDistTicks = Math.max(3, Math.floor(innerW / minLabelSpacing));
+  const makeTicks = (step) => {
+    const ticks = [];
+    for (let d = 0; d <= totalDist + step * 0.25; d += step) {
+      ticks.push(Math.min(totalDist, d));
+    }
+    return ticks;
+  };
+  let distStep = distStepBase;
+  let distTicks = makeTicks(distStep);
+  while (distTicks.length > maxDistTicks) {
+    distStep *= 2;
+    distTicks = makeTicks(distStep);
+  }
+  const elevTicks = [];
+  const elevStart = Math.floor(minElev / elevStep) * elevStep;
+  for (let e = elevStart; e <= maxElev + elevStep * 0.5; e += elevStep) {
+    elevTicks.push(e);
+  }
+
+  const profileId = `elev-${++elevationProfileId}`;
+  const gradId = `elev-fill-${profileId}`;
+  const cursorStartX = toX(first.d).toFixed(1);
+  const cursorStartY = toY(first.e).toFixed(1);
+
+  const rbMarkers = validRoadbooks.map(rb => ({
+    x: toX(rb.distKm),
+    y: toY(rb.elevM),
+    label: rb.label,
+  }));
+
+  const html = `
+    <div class="summary-elevation" aria-label="${escapeHtml(title)}">
+      <div class="summary-elevation__header">
+        <span class="summary-elevation__title">${escapeHtml(title)}</span>
+        <span class="summary-elevation__meta">${escapeHtml(kmLabel)} · ${escapeHtml(elevLabel)}</span>
+      </div>
+      <div class="summary-elevation__plot-wrap">
+        <svg class="summary-elevation__plot" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}" data-elev-id="${profileId}">
+          <defs>
+            <linearGradient id="${gradId}" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.32" />
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05" />
+            </linearGradient>
+          </defs>
+          <rect x="${padX}" y="${padTop}" width="${innerW}" height="${innerH}" fill="var(--map-bg)" rx="8" ry="8" />
+          <g class="summary-elevation__grid" stroke="var(--card-border)" stroke-width="1">
+            ${distTicks.map(d => {
+              const x = toX(d).toFixed(1);
+              return `<line x1="${x}" y1="${padTop}" x2="${x}" y2="${baseY}" />`;
+            }).join('')}
+            ${elevTicks.map(e => {
+              const y = toY(e).toFixed(1);
+              return `<line x1="${padX}" y1="${y}" x2="${padX + innerW}" y2="${y}" />`;
+            }).join('')}
+          </g>
+          <path d="${areaD}" fill="url(#${gradId})" stroke="none" />
+          <path d="${lineD}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <g class="summary-elevation__axes" fill="var(--muted)" font-size="10" font-weight="600">
+            ${distTicks.map(d => {
+              const x = toX(d).toFixed(1);
+              return `<text x="${x}" y="${baseY + 18}" text-anchor="${d === 0 ? 'start' : (d >= totalDist ? 'end' : 'middle')}" aria-hidden="true">${d.toFixed( d < 10 ? 1 : 0)} km</text>`;
+            }).join('')}
+            ${elevTicks.map(e => {
+              const y = toY(e).toFixed(1);
+              return `<text x="${padX - 8}" y="${y + 4}" text-anchor="end" aria-hidden="true">${Math.round(e)} m</text>`;
+            }).join('')}
+          </g>
+          <g class="summary-elevation__roadbooks" fill="var(--accent)" font-size="9" font-weight="600">
+            ${rbMarkers.map(rb => {
+              const y = Math.min(baseY - 6, Math.max(padTop + 0, rb.y));
+              const label = escapeHtml(rb.label || '');
+              return `
+                <g class="summary-elevation__waypoint" data-label="${label}" data-x="${rb.x.toFixed(1)}" data-y="${y.toFixed(1)}">
+                  <rect class="summary-elevation__waypoint-hit" x="${(rb.x - 8).toFixed(1)}" y="${padTop}" width="16" height="${(baseY - padTop).toFixed(1)}" />
+                  <line x1="${rb.x.toFixed(1)}" y1="${padTop}" x2="${rb.x.toFixed(1)}" y2="${baseY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" />
+                  <circle cx="${rb.x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2" />
+                </g>`;
+            }).join('')}
+          </g>
+          <circle class="summary-elevation__cursor" data-elev-cursor="${profileId}" cx="${cursorStartX}" cy="${cursorStartY}" r="5" fill="var(--accent)" stroke="var(--card-bg)" stroke-width="2" opacity="0" />
+        </svg>
+        <div class="summary-elevation__tooltip" data-elev-tooltip="${profileId}" role="status" aria-live="polite"></div>
+        <div class="summary-elevation__tooltip summary-elevation__tooltip--waypoint" data-elev-waypoint-tooltip="${profileId}" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  `;
+
+  const bind = (rootEl) => {
+    const svg = (rootEl || document).querySelector(`svg[data-elev-id="${profileId}"]`);
+    const tip = (rootEl || document).querySelector(`.summary-elevation__tooltip[data-elev-tooltip="${profileId}"]`);
+    const waypointTip = (rootEl || document).querySelector(`.summary-elevation__tooltip[data-elev-waypoint-tooltip="${profileId}"]`);
+    const cursor = (rootEl || document).querySelector(`.summary-elevation__cursor[data-elev-cursor="${profileId}"]`);
+    if (!svg || !tip || !cursor) return;
+
+    const bbox = { left: padX, right: padX + innerW };
+    const distances = pairs.map(p => p.d);
+
+    const lookupIndex = (mouseX) => {
+      const clampX = Math.max(bbox.left, Math.min(bbox.right, mouseX));
+      const rel = (clampX - padX) / innerW;
+      const targetD = rel * totalDist;
+      let lo = 0, hi = distances.length - 1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (distances[mid] < targetD) lo = mid + 1; else hi = mid;
+      }
+      const idx = lo;
+      if (idx <= 0) return 0;
+      const prev = distances[idx - 1];
+      return (targetD - prev) < (distances[idx] - targetD) ? idx - 1 : idx;
+    };
+
+    const formatKm = (v) => `${v.toFixed(v < 10 ? 2 : 1)} km`;
+    const formatSlope = (i) => {
+      if (i <= 0) i = 1;
+      const a = pairs[i - 1];
+      const b = pairs[i];
+      const dM = Math.max(1e-6, (b.d - a.d) * 1000);
+      const slopePct = ((b.e - a.e) / dM) * 100;
+      return `${slopePct.toFixed(1)}%`;
+    };
+
+    const positionTip = (tipEl, x, y, opts = {}) => {
+      if (!tipEl) return;
+      const wrapRect = svg.parentElement?.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+      const scaleX = svgRect.width / width;
+      const scaleY = svgRect.height / height;
+      const offsetX = wrapRect ? (svgRect.left - wrapRect.left) : 0;
+      const offsetY = wrapRect ? (svgRect.top - wrapRect.top) : 0;
+      const tipHalfW = (tipEl.offsetWidth || 0) / 2;
+      const tipH = tipEl.offsetHeight || 0;
+      const relX = offsetX + (x * scaleX);
+      const relY = offsetY + (y * scaleY);
+      const maxX = (wrapRect?.width ?? svgRect.width) - tipHalfW - 4;
+      const minX = tipHalfW + 4;
+      const clampedX = Math.max(minX, Math.min(maxX, relX));
+      const containerH = wrapRect?.height ?? svgRect.height;
+      const anchorY = opts.placement === 'below'
+        ? Math.min(containerH - tipH - 4, relY + 10)
+        : Math.max(0, relY - tipH - 10);
+      tipEl.style.left = `${clampedX}px`;
+      tipEl.style.top = `${anchorY}px`;
+    };
+
+    const onMove = (evt) => {
+      const pt = svg.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const idx = lookupIndex(loc.x);
+      const p = pairs[idx];
+      const x = toX(p.d);
+      const y = toY(p.e);
+      tip.textContent = `${formatKm(p.d)} · ${Math.round(p.e)} m · ${formatSlope(idx)} slope`;
+      tip.style.display = 'block';
+      positionTip(tip, x, y);
+      cursor.setAttribute('cx', x.toFixed(2));
+      cursor.setAttribute('cy', y.toFixed(2));
+      cursor.setAttribute('opacity', '1');
+    };
+
+    const onLeave = () => {
+      tip.style.display = 'none';
+      cursor.setAttribute('opacity', '0');
+      if (waypointTip) waypointTip.style.display = 'none';
+    };
+
+    const onWaypointEnter = (evt) => {
+      const target = evt.currentTarget;
+      if (!waypointTip || !(target instanceof SVGGraphicsElement)) return;
+      const label = target.getAttribute('data-label') || '';
+      if (!label) return;
+      const x = parseFloat(target.getAttribute('data-x') || '0');
+      const y = parseFloat(target.getAttribute('data-y') || '0');
+      waypointTip.textContent = label;
+      waypointTip.style.display = 'block';
+      positionTip(waypointTip, x, y, { placement: 'below' });
+    };
+
+    const onWaypointLeave = () => {
+      if (waypointTip) waypointTip.style.display = 'none';
+    };
+
+    svg.addEventListener('mousemove', onMove);
+    svg.addEventListener('mouseleave', onLeave);
+    svg.querySelectorAll('.summary-elevation__waypoint').forEach(node => {
+      node.addEventListener('mouseenter', onWaypointEnter);
+      node.addEventListener('mouseleave', onWaypointLeave);
+    });
+  };
+
+  return { html, bind };
 }
 
 /** Public: hook fade shadows on the horizontal scroll wrapper */

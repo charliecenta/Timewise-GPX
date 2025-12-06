@@ -342,6 +342,81 @@ h1 { margin: 0; font-size: 20px; }
   margin: 0;
 }
 
+.summary-elevation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-elevation__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.summary-elevation__title {
+  font-weight: 700;
+}
+
+.summary-elevation__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.summary-elevation__plot {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.summary-elevation__plot-wrap {
+  position: relative;
+}
+
+.summary-elevation__roadbooks {
+  line-height: 1.2;
+}
+
+.summary-elevation__grid line {
+  stroke-dasharray: 2 4;
+}
+
+.summary-elevation__tooltip {
+  position: absolute;
+  display: none;
+  padding: 6px 8px;
+  background: var(--card-bg);
+  color: var(--fg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 18px var(--shadow);
+  font-size: 0.9rem;
+  pointer-events: none;
+  transform: translate(-50%, 0);
+  white-space: nowrap;
+}
+
+.summary-elevation__tooltip--waypoint {
+  font-weight: 600;
+}
+
+.summary-elevation__waypoint-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.summary-elevation__waypoint line,
+.summary-elevation__waypoint circle {
+  pointer-events: all;
+}
+
+.summary-elevation__cursor {
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
 /* =========================================================
    CONTROLS
    ========================================================= */
